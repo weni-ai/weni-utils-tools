@@ -82,6 +82,9 @@ class VTEXClient:
         """
         self.base_url = base_url.rstrip("/")
         self.store_url = store_url.rstrip("/")
+        if not self._validate_base_url_and_store_url():
+            raise ValueError("Base URL or store URL is invalid")
+
         self.vtex_app_key = vtex_app_key
         self.vtex_app_token = vtex_app_token
         self.timeout = timeout
@@ -98,6 +101,19 @@ class VTEXClient:
             headers["X-VTEX-API-AppToken"] = self.vtex_app_token
 
         return headers
+
+    def _validate_base_url_and_store_url(self) -> bool:
+        """Validate if the base URL and store URL are valid"""
+        if not self.base_url or not self.store_url:
+            return False
+        
+        if not self.base_url.startswith("https://") or not self.store_url.startswith("https://"):
+            return False
+
+        if not self.base_url.endswith((".vtexcommercestable.com.br", "myvtex.com")):
+            return False
+        
+        return True
 
     def _clean_image_url(self, img_url: str) -> str:
         """Remove query parameters da URL da imagem"""
