@@ -225,8 +225,13 @@ class ProductConcierge:
             region_id=context.region_id,
         )
 
-        # 4. Processa produtos brutos (formata, filtra, limita)
-        products = self._process_products(raw_products)
+        # 4. Process raw products (format, filter, limit)
+        products = self.client.process_products(
+            raw_products=raw_products,
+            max_products=self.max_products,
+            max_variations=self.max_variations,
+            utm_source=self.utm_source,
+        )
 
         # 5. Executa hooks after_search
         for plugin in self.plugins:
