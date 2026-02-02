@@ -614,7 +614,7 @@ class VTEXClient:
         raw_products: List[Dict],
         max_products: int = 20,
         max_variations: int = 5,
-        utm_source: Optional[str] = None,
+        utm_source: Optional[str] = "weni_concierge",
         extra_product_fields: Optional[List] = None,
     ) -> Dict[str, Dict]:
         """
