@@ -1,26 +1,26 @@
 """
-Weni Tools - Agentes e funcionalidades para integração VTEX
+Weni Tools - Agents and functionalities for VTEX integration
 
-Estrutura:
-- tools/ - Agentes fixos (ProductConcierge, OrderConcierge)
-- plugins/ - Funcionalidades reutilizáveis (simulação, CAPI, etc)
+Structure:
+- tools/ - Fixed agents (ProductConcierge, OrderConcierge)
+- plugins/ - Reusable functionalities (simulation, CAPI, etc)
 
-Usage (agentes):
+Usage (agents):
     from weni_utils.tools import ProductConcierge, OrderConcierge
 
     concierge = ProductConcierge(base_url, store_url)
     result = concierge.search("drill", postal_code="01310-100")
 
-Usage (funcionalidades dos plugins):
+Usage (plugin functionalities):
     from weni_utils.tools.plugins import simulate_cart, get_region, send_capi_event
 
-    # Simular carrinho
+    # Simulate cart
     result = simulate_cart(base_url, items, postal_code="01310-100")
 
-    # Obter região
+    # Get region
     region_id, error, sellers = get_region(base_url, "01310-100")
 
-    # Enviar evento CAPI
+    # Send CAPI event
     send_capi_event(auth_token, channel_uuid, contact_urn)
 """
 
@@ -43,18 +43,18 @@ from .plugins import (
 from .stock import StockManager
 
 __all__ = [
-    # Agentes fixos
+    # Fixed agents
     "ProductConcierge",
     "OrderConcierge",
-    # Classes base
+    # Base classes
     "VTEXClient",
     "StockManager",
     "SearchContext",
-    # Funções de busca (mantidas em functions.py por compatibilidade)
+    # Search functions (kept in functions.py for compatibility)
     "search_products",
     "search_product_by_sku",
     "get_sku_details",
-    # Funcionalidades dos plugins
+    # Plugin functionalities
     "simulate_cart",
     "simulate_cart_batch",
     "check_stock_availability",

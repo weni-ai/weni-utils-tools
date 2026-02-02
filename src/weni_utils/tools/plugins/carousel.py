@@ -1,8 +1,8 @@
 """
-Carousel Plugin - Envio de Carousel via WhatsApp
+Carousel Plugin - WhatsApp Carousel Sending
 
-Plugin para clientes que precisam enviar produtos como carousel no WhatsApp.
-Formata produtos em XML e envia via API da Weni.
+Plugin for clients that need to send products as carousel on WhatsApp.
+Formats products in XML and sends via Weni API.
 """
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -18,12 +18,12 @@ if TYPE_CHECKING:
 
 class Carousel(PluginBase):
     """
-    Plugin de carousel WhatsApp.
+    WhatsApp carousel plugin.
 
-    Funcionalidades:
-    - Formata produtos em XML para carousel
-    - Envia carousel via API da Weni
-    - Limita número de produtos no carousel
+    Features:
+    - Formats products in XML for carousel
+    - Sends carousel via Weni API
+    - Limits number of products in carousel
 
     Example:
         concierge = ProductConcierge(
@@ -31,15 +31,15 @@ class Carousel(PluginBase):
             store_url="...",
             plugins=[
                 Carousel(
-                    weni_token="seu-token",
+                    weni_token="your-token",
                     max_items=10
                 )
             ]
         )
 
-        # O carousel é enviado automaticamente após a busca
+        # Carousel is sent automatically after search
         result = concierge.search(
-            product_name="camiseta",
+            product_name="t-shirt",
             contact_info={"urn": "whatsapp:5511999999999"}
         )
     """
@@ -57,15 +57,15 @@ class Carousel(PluginBase):
         timeout: int = 30,
     ):
         """
-        Inicializa o plugin de carousel.
+        Initialize the carousel plugin.
 
         Args:
-            weni_token: Token de autenticação da Weni
-            weni_jwt_token: JWT Token de autenticação da Weni
-            weni_api_url: URL da API de broadcast
-            max_items: Número máximo de itens no carousel
-            auto_send: Se True, envia carousel automaticamente
-            timeout: Timeout para requisições
+            weni_token: Weni authentication token
+            weni_jwt_token: Weni JWT authentication token
+            weni_api_url: Broadcast API URL
+            max_items: Maximum number of items in carousel
+            auto_send: If True, sends carousel automatically
+            timeout: Request timeout
         """
         self.weni_token = weni_token
         self.weni_jwt_token = weni_jwt_token
@@ -76,7 +76,7 @@ class Carousel(PluginBase):
 
     def finalize_result(self, result: Dict[str, Any], context: "SearchContext") -> Dict[str, Any]:
         """
-        Envia carousel após finalizar resultado (se auto_send=True).
+        Send carousel after finalizing result (if auto_send=True).
         """
         if not self.auto_send:
             return result
@@ -85,12 +85,12 @@ class Carousel(PluginBase):
         if not contact_urn:
             return result
 
-        # Obtém token (pode vir do contexto ou da inicialização)
+        # Get token (can come from context or initialization)
         token = self.weni_token or context.get_credential("WENI_TOKEN")
         if not token:
             return result
 
-        # Prepara dados dos produtos para o carousel
+        # Prepare product data for carousel
         products_data = self._extract_products_for_carousel(result)
 
         if products_data:
@@ -105,29 +105,29 @@ class Carousel(PluginBase):
 
     def _extract_products_for_carousel(self, result: Dict[str, Any]) -> List[Dict]:
         """
-        Extrai dados de produtos do resultado para formato de carousel.
+        Extract product data from result for carousel format.
 
         Args:
-            result: Resultado da busca
+            result: Search result
 
         Returns:
-            Lista de produtos formatados
+            List of formatted products
         """
         products_data = []
 
         for key, value in result.items():
-            # Ignora chaves que não são produtos
+            # Ignore keys that are not products
             if key in ["region_message", "carousel_sent", "carousel_items"]:
                 continue
 
             if not isinstance(value, dict):
                 continue
 
-            # Verifica se é um produto (tem variations)
+            # Check if it's a product (has variations)
             if "variations" not in value:
                 continue
 
-            # Extrai primeiro SKU de cada produto
+            # Extract first SKU from each product
             variations = value.get("variations", [])
             if not variations:
                 continue
@@ -152,35 +152,35 @@ class Carousel(PluginBase):
 
     def format_price(self, price: Optional[float], list_price: Optional[float] = None) -> str:
         """
-        Formata preço para exibição.
+        Format price for display.
 
         Args:
-            price: Preço atual
-            list_price: Preço original (de/por)
+            price: Current price
+            list_price: Original price (from/to)
 
         Returns:
-            String formatada
+            Formatted string
         """
         if not price:
-            return "Preço não disponível"
+            return "Price not available"
 
         price_str = f"R$ {price:.2f}".replace(".", ",")
 
         if list_price and list_price > price:
             list_price_str = f"R$ {list_price:.2f}".replace(".", ",")
-            return f"{price_str} (de {list_price_str})"
+            return f"{price_str} (from {list_price_str})"
 
         return price_str
 
     def create_carousel_xml(self, products_data: List[Dict]) -> str:
         """
-        Cria XML do carousel.
+        Create carousel XML.
 
         Args:
-            products_data: Lista de dados dos produtos
+            products_data: List of product data
 
         Returns:
-            String XML formatada
+            Formatted XML string
         """
         carousel_items = []
 
@@ -188,14 +188,14 @@ class Carousel(PluginBase):
             if not product:
                 continue
 
-            name = product.get("name", "Produto")
+            name = product.get("name", "Product")
             price_display = self.format_price(product.get("price"), product.get("list_price"))
             image_url = product.get("image", "")
             product_link = product.get("product_link", "")
 
-            # Formata imagem em Markdown
+            # Format image in Markdown
             if image_url:
-                alt_text = image_url.split("/")[-1] if "/" in image_url else "produto"
+                alt_text = image_url.split("/")[-1] if "/" in image_url else "product"
                 formatted_image = f"![{alt_text}]({image_url})"
             else:
                 formatted_image = ""
@@ -219,15 +219,15 @@ class Carousel(PluginBase):
 
     def send_carousel(self, products_data: List[Dict], contact_urn: str, auth_token: str) -> bool:
         """
-        Envia carousel via WhatsApp.
+        Send carousel via WhatsApp.
 
         Args:
-            products_data: Lista de dados dos produtos
-            contact_urn: URN do contato
-            auth_token: Token de autenticação
+            products_data: List of product data
+            contact_urn: Contact URN
+            auth_token: Authentication token
 
         Returns:
-            True se enviado com sucesso
+            True if sent successfully
         """
         xml_content = self.create_carousel_xml(products_data)
 
@@ -243,7 +243,7 @@ class Carousel(PluginBase):
             return True
 
         except Exception as e:
-            print(f"ERROR: Erro ao enviar carousel: {e}")
+            print(f"ERROR: Error sending carousel: {e}")
             return False
 
     def send_carousel_for_skus(
@@ -255,19 +255,19 @@ class Carousel(PluginBase):
         seller_id: str = "1",
     ) -> bool:
         """
-        Envia carousel para uma lista específica de SKUs.
+        Send carousel for a specific list of SKUs.
 
-        Útil para enviar carousel manualmente com SKUs selecionados.
+        Useful for sending carousel manually with selected SKUs.
 
         Args:
-            sku_ids: Lista de SKU IDs
-            client: Cliente VTEX
-            contact_urn: URN do contato
-            auth_token: Token de autenticação
-            seller_id: ID do seller para simulação de preço
+            sku_ids: List of SKU IDs
+            client: VTEX client
+            contact_urn: Contact URN
+            auth_token: Authentication token
+            seller_id: Seller ID for price simulation
 
         Returns:
-            True se enviado com sucesso
+            True if sent successfully
         """
         products_data = []
 
@@ -276,11 +276,11 @@ class Carousel(PluginBase):
             if not product:
                 continue
 
-            # Extrai dados do produto
+            # Extract product data
             product_name = product.get("productName", "")
             product_link = product.get("link", "")
 
-            # Busca item específico
+            # Find specific item
             target_item = None
             for item in product.get("items", []):
                 if item.get("itemId") == sku_id:
@@ -290,13 +290,13 @@ class Carousel(PluginBase):
             if not target_item:
                 continue
 
-            # Extrai imagem
+            # Extract image
             image_url = ""
             images = target_item.get("images", [])
             if images:
                 image_url = images[0].get("imageUrl", "")
 
-            # Busca preço via simulação
+            # Get price via simulation
             simulation = client.cart_simulation(
                 items=[{"id": sku_id, "quantity": 1, "seller": seller_id}]
             )

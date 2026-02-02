@@ -1,10 +1,10 @@
 """
-Plugins para o Weni VTEX Concierge
+Plugins for Weni VTEX Concierge
 
-Plugins são extensões opcionais que adicionam funcionalidades específicas.
-Cada cliente pode escolher quais plugins utilizar.
+Plugins are optional extensions that add specific functionalities.
+Each client can choose which plugins to use.
 
-Uso:
+Usage:
     from weni_utils.tools.plugins import Regionalization, Wholesale, Carousel, CAPI
 
     concierge = ProductConcierge(

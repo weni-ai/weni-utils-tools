@@ -1,8 +1,8 @@
 """
-Send Message Plugin - Envio de Mensagens via WhatsApp Broadcast
+Send Message Plugin - WhatsApp Broadcast Message Sending
 
-Plugin para envio de mensagens através da API do WhatsApp Broadcast da Weni.
-Suporta envio de mensagens de texto, templates, anexos, quick replies e footers.
+Plugin for sending messages through Weni's WhatsApp Broadcast API.
+Supports sending text messages, templates, attachments, quick replies and footers.
 """
 
 from typing import Any, Dict, List, Optional, Union
@@ -15,26 +15,26 @@ from .base import PluginBase
 
 class SendMessage(PluginBase):
     """
-    Plugin de envio de mensagem usando a API do WhatsApp Broadcast da Weni.
+    Message sending plugin using Weni's WhatsApp Broadcast API.
 
-    Este plugin permite enviar mensagens através da API de broadcast da Weni,
-    suportando diferentes tipos de conteúdo e formatações.
+    This plugin allows sending messages through Weni's broadcast API,
+    supporting different types of content and formatting.
 
-    Funcionalidades:
-        - Envio de mensagens de texto simples
-        - Envio de templates com variáveis dinâmicas
-        - Anexos (imagens, PDFs, documentos)
-        - Quick replies (botões de resposta rápida)
-        - Footers personalizados
-        - Autenticação flexível (Token ou JWT)
+    Features:
+        - Simple text message sending
+        - Template sending with dynamic variables
+        - Attachments (images, PDFs, documents)
+        - Quick replies (quick response buttons)
+        - Custom footers
+        - Flexible authentication (Token or JWT)
 
     Args:
-        weni_token: Token de autenticação da Weni para API externa
-        weni_jwt_token: JWT Token de autenticação para API interna
-        weni_api_url_external: URL da API externa de broadcast
-        weni_api_url_internal: URL da API interna de broadcast
-        timeout: Timeout em segundos para requisições HTTP (padrão: 30)
-        channel_uuid: UUID do canal WhatsApp para envio das mensagens
+        weni_token: Weni authentication token for external API
+        weni_jwt_token: JWT authentication token for internal API
+        weni_api_url_external: External broadcast API URL
+        weni_api_url_internal: Internal broadcast API URL
+        timeout: HTTP request timeout in seconds (default: 30)
+        channel_uuid: WhatsApp channel UUID for sending messages
 
     """
 
@@ -50,27 +50,27 @@ class SendMessage(PluginBase):
         channel_uuid: Optional[str] = "",
     ):
         """
-        Inicializa o plugin de envio de mensagens.
+        Initialize the message sending plugin.
 
         Args:
-            weni_token: Token de autenticação da Weni para API externa.
-                       Se fornecido, será usado para autenticação na API externa.
-            weni_jwt_token: JWT Token de autenticação para API interna.
-                           Se fornecido junto com weni_token=None, será usado na API interna.
-            weni_api_url_external: URL da API externa de broadcast da Weni.
-            weni_api_url_internal: URL da API interna de broadcast da Weni.
-            timeout: Timeout em segundos para requisições HTTP (padrão: 30).
-            channel_uuid: UUID do canal WhatsApp onde as mensagens serão enviadas.
-                         Deve ser fornecido para que as mensagens sejam enviadas corretamente.
+            weni_token: Weni authentication token for external API.
+                       If provided, will be used for external API authentication.
+            weni_jwt_token: JWT authentication token for internal API.
+                           If provided with weni_token=None, will be used for internal API.
+            weni_api_url_external: Weni's external broadcast API URL.
+            weni_api_url_internal: Weni's internal broadcast API URL.
+            timeout: HTTP request timeout in seconds (default: 30).
+            channel_uuid: WhatsApp channel UUID where messages will be sent.
+                         Must be provided for messages to be sent correctly.
 
         Note:
-            É necessário fornecer pelo menos um dos tokens (weni_token ou weni_jwt_token).
-            O channel_uuid é obrigatório para o envio de mensagens.
+            At least one token (weni_token or weni_jwt_token) must be provided.
+            channel_uuid is required for sending messages.
         """
         if not weni_token and not weni_jwt_token:
             raise ValueError(
-                "É necessário fornecer pelo menos um token de autenticação "
-                "(weni_token ou weni_jwt_token)"
+                "At least one authentication token must be provided "
+                "(weni_token or weni_jwt_token)"
             )
 
         self.weni_token = weni_token
@@ -92,42 +92,42 @@ class SendMessage(PluginBase):
         locale: str = "pt_BR",
     ) -> Dict[str, Any]:
         """
-        Envia uma mensagem via WhatsApp Broadcast.
+        Send a message via WhatsApp Broadcast.
 
-        Método principal para envio de mensagens. Suporta diferentes tipos de conteúdo:
-        mensagens de texto, templates, anexos, quick replies e footers.
+        Main method for sending messages. Supports different content types:
+        text messages, templates, attachments, quick replies and footers.
 
         Args:
-            message: Texto da mensagem a ser enviada. Pode ser vazio se usar template.
-            contact_urn: URN do contato no formato "whatsapp:5511999999999".
-            variables: Lista de variáveis para substituição em templates.
-                      Exemplo: ["João", "R$ 100,00"] para template "Olá {{1}}, seu pedido {{2}}".
-            attachments: Lista opcional de anexos. Pode ser lista de URLs (str) ou
-                        lista de dicionários com informações do anexo.
-            footer: Texto opcional para rodapé da mensagem.
-            quick_replies: Lista opcional de quick replies (botões de resposta rápida).
-                          Pode ser lista de strings ou lista de dicionários.
-            template_uuid: UUID opcional do template a ser usado. Se fornecido,
-                          a mensagem será enviada como template.
-            locale: Locale do template (padrão: "pt_BR").
+            message: Message text to be sent. Can be empty if using template.
+            contact_urn: Contact URN in format "whatsapp:5511999999999".
+            variables: List of variables for template substitution.
+                      Example: ["John", "$100.00"] for template "Hello {{1}}, your order {{2}}".
+            attachments: Optional list of attachments. Can be list of URLs (str) or
+                        list of dictionaries with attachment info.
+            footer: Optional footer text for the message.
+            quick_replies: Optional list of quick replies (quick response buttons).
+                          Can be list of strings or list of dictionaries.
+            template_uuid: Optional template UUID to use. If provided,
+                          message will be sent as template.
+            locale: Template locale (default: "pt_BR").
 
         Returns:
-            Dict contendo a resposta da API com os seguintes campos possíveis:
-                - success: bool indicando sucesso (quando há erro)
-                - error: str com mensagem de erro (quando há erro)
-                - status_code: int com código HTTP (quando há erro HTTP)
-                - response: str com resposta da API (quando há erro HTTP)
-                - url: str com URL da requisição (quando há erro)
-                - Dados da resposta JSON da API (quando bem-sucedido)
+            Dict containing API response with possible fields:
+                - success: bool indicating success (when there's an error)
+                - error: str with error message (when there's an error)
+                - status_code: int with HTTP code (when there's HTTP error)
+                - response: str with API response (when there's HTTP error)
+                - url: str with request URL (when there's an error)
+                - API JSON response data (when successful)
 
         Raises:
-            ValueError: Se contact_urn estiver vazio ou channel_uuid não estiver configurado.
+            ValueError: If contact_urn is empty or channel_uuid is not configured.
         """
         if not contact_urn:
-            raise ValueError("contact_urn não pode estar vazio")
+            raise ValueError("contact_urn cannot be empty")
 
         if not self.channel_uuid:
-            raise ValueError("channel_uuid deve ser configurado no __init__ para enviar mensagens")
+            raise ValueError("channel_uuid must be configured in __init__ to send messages")
 
         return self.send_broadcast_external(
             message,
@@ -152,35 +152,35 @@ class SendMessage(PluginBase):
         locale: str = "pt_BR",
     ) -> Dict[str, Any]:
         """
-        Envia mensagem usando a API do WhatsApp Broadcast (método interno).
+        Send message using WhatsApp Broadcast API (internal method).
 
-        Este método realiza o processamento e formatação dos dados antes de enviar
-        para a API da Weni.
+        This method processes and formats data before sending
+        to Weni's API.
 
         Args:
-            message: Texto da mensagem.
-            contact_urn: URN do contato.
-            variables: Lista de variáveis para templates.
-            attachments: Lista opcional de anexos.
-            footer: Texto opcional para rodapé.
-            quick_replies: Lista opcional de quick replies.
-            template_uuid: UUID opcional do template.
-            locale: Locale do template.
+            message: Message text.
+            contact_urn: Contact URN.
+            variables: List of variables for templates.
+            attachments: Optional list of attachments.
+            footer: Optional footer text.
+            quick_replies: Optional list of quick replies.
+            template_uuid: Optional template UUID.
+            locale: Template locale.
 
         Returns:
-            Dict com a resposta da API ou informações de erro.
+            Dict with API response or error information.
         """
-        # Formata anexos se fornecidos
+        # Format attachments if provided
         formatted_attachments = []
         if attachments:
             formatted_attachments = self.format_attachments(attachments)
 
-        # Formata template se fornecido
+        # Format template if provided
         template = None
         if template_uuid:
             template = self.format_template(template_uuid, variables, locale)
 
-        # Formata payload completo
+        # Format complete payload
         payload = self.format_payload(
             message=message,
             template=template,
@@ -190,7 +190,7 @@ class SendMessage(PluginBase):
             quick_replies=quick_replies,
         )
 
-        # Envia requisição e retorna resposta
+        # Send request and return response
         response = self.request_broadcast(payload)
         return response
 
@@ -204,24 +204,24 @@ class SendMessage(PluginBase):
         template: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Formata o payload para o envio da mensagem.
+        Format the payload for message sending.
 
-        Cria a estrutura de dados no formato esperado pela API do WhatsApp Broadcast.
+        Creates the data structure in the format expected by WhatsApp Broadcast API.
 
         Args:
-            message: Texto da mensagem.
-            attachments: Lista de anexos formatados.
-            contact_urn: URN do contato.
-            footer: Texto do rodapé.
-            quick_replies: Lista de quick replies.
-            template: Dicionário com informações do template.
+            message: Message text.
+            attachments: List of formatted attachments.
+            contact_urn: Contact URN.
+            footer: Footer text.
+            quick_replies: List of quick replies.
+            template: Dictionary with template information.
 
         Returns:
-            Dict com o payload formatado no formato esperado pela API.
+            Dict with formatted payload in API expected format.
 
         Note:
-            O payload retornado é um dicionário Python, não uma string JSON.
-            A serialização para JSON é feita no método request_broadcast.
+            The returned payload is a Python dictionary, not a JSON string.
+            JSON serialization is done in the request_broadcast method.
         """
         if attachments is None:
             attachments = []
@@ -235,7 +235,7 @@ class SendMessage(PluginBase):
             },
         }
 
-        # Adiciona campos opcionais apenas se fornecidos
+        # Add optional fields only if provided
         if template:
             payload["msg"]["template"] = template
 
@@ -251,19 +251,19 @@ class SendMessage(PluginBase):
         self, template_uuid: str, variables: List[str], locale: str = "pt_BR"
     ) -> Dict[str, Any]:
         """
-        Formata o template para o envio da mensagem.
+        Format template for message sending.
 
-        Cria a estrutura de dados do template no formato esperado pela API.
+        Creates the template data structure in the format expected by the API.
 
         Args:
-            template_uuid: UUID do template cadastrado na Weni.
-            variables: Lista de variáveis para substituição no template.
-                      A ordem das variáveis deve corresponder à ordem no template.
-            locale: Locale do template (padrão: "pt_BR").
-                   Exemplos: "pt_BR", "en_US", "es_ES".
+            template_uuid: Template UUID registered in Weni.
+            variables: List of variables for template substitution.
+                      Variable order must match template order.
+            locale: Template locale (default: "pt_BR").
+                   Examples: "pt_BR", "en_US", "es_ES".
 
         Returns:
-            Dict com a estrutura do template formatada:
+            Dict with formatted template structure:
                 {
                     "uuid": str,
                     "variables": List[str],
@@ -275,28 +275,28 @@ class SendMessage(PluginBase):
 
     def format_attachments(self, attachments: List[Union[str, Dict[str, Any]]]) -> List[str]:
         """
-        Formata os anexos para o envio da mensagem.
+        Format attachments for message sending.
 
-        Converte URLs ou dicionários de anexos para o formato esperado pela API:
-        "mime/type:url". Detecta automaticamente o tipo MIME baseado na extensão
-        do arquivo ou usa o tipo fornecido no dicionário.
+        Converts URLs or attachment dictionaries to the format expected by API:
+        "mime/type:url". Automatically detects MIME type based on file extension
+        or uses type provided in dictionary.
 
         Args:
-            attachments: Lista de anexos. Pode conter:
-                       - Strings com URLs dos arquivos
-                       - Dicionários com formato {"url": str, "mime_type": str, ...}
+            attachments: List of attachments. Can contain:
+                       - Strings with file URLs
+                       - Dictionaries with format {"url": str, "mime_type": str, ...}
 
         Returns:
-            Lista de strings no formato "mime/type:url" para cada anexo válido.
+            List of strings in format "mime/type:url" for each valid attachment.
 
         Supported MIME Types:
-            - Imagens: image/png, image/jpg, image/jpeg, image/gif
-            - Documentos: application/pdf, application/doc, application/docx
-            - Planilhas: application/xls, application/xlsx
+            - Images: image/png, image/jpg, image/jpeg, image/gif
+            - Documents: application/pdf, application/doc, application/docx
+            - Spreadsheets: application/xls, application/xlsx
         """
         formatted_attachments = []
 
-        # Mapeamento de extensões para tipos MIME
+        # Extension to MIME type mapping
         mime_types = {
             ".png": "image/png",
             ".jpg": "image/jpeg",
@@ -310,7 +310,7 @@ class SendMessage(PluginBase):
         }
 
         for attachment in attachments:
-            # Se for dicionário, extrai URL e tipo MIME
+            # If dictionary, extract URL and MIME type
             if isinstance(attachment, dict):
                 url = attachment.get("url", "")
                 mime_type = attachment.get("mime_type", "")
@@ -319,15 +319,15 @@ class SendMessage(PluginBase):
                 if mime_type:
                     formatted_attachments.append(f"{mime_type}:{url}")
                     continue
-                # Se não tiver mime_type, tenta detectar pela extensão
+                # If no mime_type, try to detect by extension
                 attachment = url
 
-            # Converte para string e normaliza
+            # Convert to string and normalize
             url = str(attachment).strip()
             if not url:
                 continue
 
-            # Detecta tipo MIME pela extensão (case-insensitive)
+            # Detect MIME type by extension (case-insensitive)
             url_lower = url.lower()
             mime_type = None
 
@@ -339,34 +339,34 @@ class SendMessage(PluginBase):
             if mime_type:
                 formatted_attachments.append(f"{mime_type}:{url}")
             else:
-                # Se não conseguir detectar, usa como link genérico
-                # ou pode lançar um aviso (comentado para manter compatibilidade)
+                # If can't detect, use as generic link
+                # or can throw a warning (commented for compatibility)
                 formatted_attachments.append(f"application/octet-stream:{url}")
 
         return formatted_attachments
 
     def request_broadcast(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Envia a requisição para a API do WhatsApp Broadcast com tratamento de erros.
+        Send request to WhatsApp Broadcast API with error handling.
 
-        Realiza a requisição HTTP POST para a API da Weni e trata diferentes tipos
-        de erros que podem ocorrer durante a comunicação.
+        Performs HTTP POST request to Weni's API and handles different types
+        of errors that can occur during communication.
 
         Args:
-            payload: Dicionário com o payload formatado para envio.
-                   Será serializado para JSON automaticamente pelo requests.
+            payload: Dictionary with formatted payload for sending.
+                   Will be serialized to JSON automatically by requests.
 
         Returns:
-            Dict com a resposta da API. Em caso de sucesso, retorna o JSON da resposta.
-            Em caso de erro, retorna um dict com:
+            Dict with API response. On success, returns response JSON.
+            On error, returns a dict with:
                 - success: False
-                - error: str com mensagem de erro
-                - status_code: int (apenas para erros HTTP)
-                - response: str (apenas para erros HTTP, contém resposta da API)
-                - url: str com a URL da requisição
+                - error: str with error message
+                - status_code: int (only for HTTP errors)
+                - response: str (only for HTTP errors, contains API response)
+                - url: str with request URL
 
         """
-        # Determina URL e headers baseado no token disponível
+        # Determine URL and headers based on available token
         if self.weni_token:
             url = self.weni_api_url_external
             headers = {
@@ -380,10 +380,10 @@ class SendMessage(PluginBase):
                 "Content-Type": "application/json",
             }
         else:
-            # Este caso não deveria acontecer devido à validação no __init__
+            # This case shouldn't happen due to validation in __init__
             return {
                 "success": False,
-                "error": "Nenhum token de autenticação configurado",
+                "error": "No authentication token configured",
                 "url": "",
             }
 
@@ -395,7 +395,7 @@ class SendMessage(PluginBase):
         except requests.exceptions.Timeout:
             return {
                 "success": False,
-                "error": f"Timeout ao tentar se conectar à API após {self.timeout}s",
+                "error": f"Timeout trying to connect to API after {self.timeout}s",
                 "url": url,
             }
 
@@ -408,11 +408,11 @@ class SendMessage(PluginBase):
                 try:
                     response_text = http_err.response.text
                 except Exception:
-                    response_text = "Não foi possível ler a resposta"
+                    response_text = "Could not read response"
 
             return {
                 "success": False,
-                "error": f"Erro HTTP {status_code}: {str(http_err)}",
+                "error": f"HTTP Error {status_code}: {str(http_err)}",
                 "status_code": status_code,
                 "response": response_text,
                 "url": url,
@@ -421,20 +421,20 @@ class SendMessage(PluginBase):
         except requests.exceptions.RequestException as err:
             return {
                 "success": False,
-                "error": f"Erro de requisição: {str(err)}",
+                "error": f"Request error: {str(err)}",
                 "url": url,
             }
 
         except json.JSONDecodeError as json_err:
             return {
                 "success": False,
-                "error": f"Erro ao decodificar resposta JSON: {str(json_err)}",
+                "error": f"Error decoding JSON response: {str(json_err)}",
                 "url": url,
             }
 
         except Exception as ex:
             return {
                 "success": False,
-                "error": f"Erro inesperado: {str(ex)}",
+                "error": f"Unexpected error: {str(ex)}",
                 "url": url,
             }

@@ -1,8 +1,8 @@
 """
-Regionalization Plugin - Regionalização por CEP
+Regionalization Plugin - Postal Code Based Regionalization
 
-Plugin para clientes que precisam de regionalização baseada em CEP.
-Determina a região e sellers disponíveis antes da busca.
+Plugin for clients that need postal code based regionalization.
+Determines the region and available sellers before search.
 """
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -16,13 +16,13 @@ if TYPE_CHECKING:
 
 class Regionalization(PluginBase):
     """
-    Plugin de regionalização por CEP.
+    Postal code regionalization plugin.
 
-    Funcionalidades:
-    - Obtém region_id baseado no CEP
-    - Obtém lista de sellers disponíveis para a região
-    - Aplica regras específicas de sellers (ex: regras da Mooca)
-    - Adiciona mensagem de erro se região não é atendida
+    Features:
+    - Gets region_id based on postal code
+    - Gets list of available sellers for the region
+    - Applies specific seller rules (e.g., Mooca rules)
+    - Adds error message if region is not served
 
     Example:
         concierge = ProductConcierge(
@@ -31,17 +31,17 @@ class Regionalization(PluginBase):
             plugins=[Regionalization()]
         )
 
-        # Com regras específicas de sellers
+        # With specific seller rules
         concierge = ProductConcierge(
             plugins=[
                 Regionalization(
                     seller_rules={
-                        "mooca_sellers": ["loja1000", "loja1003", "loja1500"],
-                        "retirada_sellers": ["loja1000", "loja1003"],
-                        "entrega_sellers": ["loja1000", "loja1500"],
+                        "mooca_sellers": ["store1000", "store1003", "store1500"],
+                        "pickup_sellers": ["store1000", "store1003"],
+                        "delivery_sellers": ["store1000", "store1500"],
                     },
                     priority_categories=[
-                        "/Categoria/Subcategoria/",
+                        "/Category/Subcategory/",
                     ]
                 )
             ]
@@ -58,13 +58,13 @@ class Regionalization(PluginBase):
         default_seller: str = "1",
     ):
         """
-        Inicializa o plugin de regionalização.
+        Initialize the regionalization plugin.
 
         Args:
-            seller_rules: Regras customizadas de sellers por região/tipo
-            priority_categories: Categorias que requerem lógica especial
-            require_delivery_type_for_priority: Se True, exige delivery_type para categorias prioritárias
-            default_seller: Seller padrão quando não há regionalização
+            seller_rules: Custom seller rules by region/type
+            priority_categories: Categories that require special logic
+            require_delivery_type_for_priority: If True, requires delivery_type for priority categories
+            default_seller: Default seller when there is no regionalization
         """
         self.seller_rules = seller_rules or {}
         self.priority_categories = priority_categories or []
@@ -73,14 +73,14 @@ class Regionalization(PluginBase):
 
     def before_search(self, context: "SearchContext", client: "VTEXClient") -> "SearchContext":
         """
-        Obtém região e sellers antes da busca.
+        Get region and sellers before search.
         """
         if not context.postal_code:
-            # Sem CEP, usa seller padrão
+            # No postal code, use default seller
             context.sellers = [self.default_seller]
             return context
 
-        # Consulta API de regionalização
+        # Query regionalization API
         region_id, error, sellers = client.get_region(
             context.postal_code, context.trade_policy, context.country_code
         )
@@ -89,12 +89,12 @@ class Regionalization(PluginBase):
         context.region_error = error
 
         if error:
-            # Usa seller padrão em caso de erro
+            # Use default seller in case of error
             context.sellers = [self.default_seller]
         else:
             context.sellers = sellers
 
-        # Aplica regras customizadas de sellers
+        # Apply custom seller rules
         context.sellers = self._apply_seller_rules(
             context.sellers, context.delivery_type, context.seller_rules
         )
@@ -105,14 +105,14 @@ class Regionalization(PluginBase):
         self, sellers: List[str], delivery_type: Optional[str], seller_rules: Dict[str, List[str]]
     ) -> List[str]:
         """
-        Aplica regras customizadas de sellers.
+        Apply custom seller rules.
 
         Args:
-            sellers: Lista de sellers da região
-            delivery_type: Tipo de entrega (Retirada/Entrega)
+            sellers: List of sellers from the region
+            delivery_type: Delivery type (Pickup/Delivery)
 
         Returns:
-            Lista de sellers filtrada
+            Filtered list of sellers
         """
         if not seller_rules:
             return sellers
@@ -129,7 +129,7 @@ class Regionalization(PluginBase):
         self, products: Dict[str, Dict], context: "SearchContext", client: "VTEXClient"
     ) -> Dict[str, Dict]:
         """
-        Verifica se precisa de delivery_type para categorias prioritárias.
+        Check if delivery_type is needed for priority categories.
         """
         if not self.require_delivery_type_for_priority:
             return products
@@ -137,7 +137,7 @@ class Regionalization(PluginBase):
         if not products:
             return products
 
-        # Verifica se algum produto é de categoria prioritária
+        # Check if any product is from a priority category
         has_priority = False
         for product_name, product_data in products.items():
             categories = product_data.get("categories", [])
@@ -145,20 +145,20 @@ class Regionalization(PluginBase):
                 has_priority = True
                 break
 
-        # Se tem categoria prioritária e não tem delivery_type, adiciona erro
+        # If has priority category and no delivery_type, add error
         if has_priority and not context.delivery_type:
             mooca_sellers = self.seller_rules.get("mooca_sellers", [])
             if mooca_sellers and all(s in mooca_sellers for s in context.sellers):
                 context.add_to_result(
                     "delivery_type_required",
-                    "Para produtos de pisos e revestimentos na sua região, "
-                    "é necessário informar o tipo de entrega (Retirada ou Entrega).",
+                    "For flooring and tile products in your region, "
+                    "you need to specify the delivery type (Pickup or Delivery).",
                 )
 
         return products
 
     def _is_priority_category(self, categories: List[str]) -> bool:
-        """Verifica se produto pertence a categoria prioritária."""
+        """Check if product belongs to a priority category."""
         if not categories or not self.priority_categories:
             return False
 
@@ -170,8 +170,8 @@ class Regionalization(PluginBase):
 
     def finalize_result(self, result: Dict[str, Any], context: "SearchContext") -> Dict[str, Any]:
         """
-        Adiciona mensagem de região ao resultado se necessário.
+        Add region message to result if necessary.
         """
-        # A mensagem de região já é adicionada pelo ProductConcierge
-        # Este hook pode ser usado para adicionar informações extras
+        # Region message is already added by ProductConcierge
+        # This hook can be used to add extra information
         return result

@@ -1,7 +1,7 @@
 """
-OrderConcierge - Classe principal para busca de pedidos
+OrderConcierge - Main class for order search
 
-Esta classe orquestra a busca de pedidos e tratamento de dados.
+This class orchestrates order search and data handling.
 """
 
 from datetime import datetime
@@ -14,12 +14,12 @@ from .client import VTEXClient
 
 class OrderConcierge:
     """
-    Classe principal para busca de pedidos VTEX.
+    Main class for VTEX order search.
 
     Example:
         concierge = OrderConcierge(
-            base_url="https://loja.vtexcommercestable.com.br",
-            store_url="https://loja.com.br"
+            base_url="https://store.vtexcommercestable.com.br",
+            store_url="https://store.com.br"
         )
 
         orders = concierge.search_orders("12345678900")
@@ -34,13 +34,13 @@ class OrderConcierge:
         vtex_app_token: Optional[str] = None,
     ):
         """
-        Inicializa o OrderConcierge.
+        Initialize OrderConcierge.
 
         Args:
-            base_url: URL base da API VTEX
-            store_url: URL da loja
-            vtex_app_key: App Key VTEX (opcional)
-            vtex_app_token: App Token VTEX (opcional)
+            base_url: VTEX API base URL
+            store_url: Store URL
+            vtex_app_key: VTEX App Key (optional)
+            vtex_app_token: VTEX App Token (optional)
         """
         self.client = VTEXClient(
             base_url=base_url,
@@ -51,13 +51,13 @@ class OrderConcierge:
 
     def _convert_cents(self, data: Any) -> Any:
         """
-        Converte valores em centavos para reais.
+        Convert values from cents to currency.
 
         Args:
-            data: Dados a converter
+            data: Data to convert
 
         Returns:
-            Dados convertidos
+            Converted data
         """
         currency_fields = [
             "totalValue",
@@ -99,13 +99,13 @@ class OrderConcierge:
 
     def search_orders(self, document: str) -> Dict[str, Any]:
         """
-        Busca pedidos por documento.
+        Search orders by document.
 
         Args:
-            document: Documento do cliente
+            document: Customer document
 
         Returns:
-            Dicionário com pedidos e data atual
+            Dictionary with orders and current date
         """
         orders_data = self.client.get_orders_by_document(document)
         converted_orders = self._convert_cents(orders_data)
@@ -119,13 +119,13 @@ class OrderConcierge:
 
     def get_order_details(self, order_id: str) -> Dict[str, Any]:
         """
-        Busca detalhes de um pedido.
+        Get order details.
 
         Args:
-            order_id: ID do pedido
+            order_id: Order ID
 
         Returns:
-            Dicionário com detalhes do pedido e data atual
+            Dictionary with order details and current date
         """
         order_data = self.client.get_order_by_id(order_id)
 
