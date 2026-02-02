@@ -93,10 +93,8 @@ def search_products(
     )
 
     # Process products (format, filter, limit)
-    return _process_products(
+    return client.process_products(
         raw_products=raw_products,
-        client=client,
-        store_url=store_url,
         max_products=max_products,
         max_variations=max_variations,
         utm_source=utm_source,
@@ -154,6 +152,37 @@ def search_product_by_sku(
     # For now, we use the basic method
     return client.get_product_by_sku(sku_id)
 
+def get_nested_value(data, path: str):
+        """
+        Get a nested value from a dictionary.
+        """
+        current = data
+
+        for part in path.split("."):
+            if isinstance(current, list):
+                try:
+                    index = int(part)
+                    current = current[index]
+                except (ValueError, IndexError):
+                    return None
+
+            elif isinstance(current, dict):
+                if part not in current:
+                    return None
+                current = current[part]
+
+            else:
+                return None
+
+        return current
+    
+def normalize_field_name(field_path: str) -> str:
+    """
+    Normalize a field name.
+    """
+    return field_path.split(".")[-1]
+
+
 
 # =============================================================================
 # SKU DETAILS
@@ -202,124 +231,3 @@ def get_sku_details(
     return client.get_sku_details(sku_id)
 
 
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-
-
-def _process_products(
-    raw_products: List[Dict],
-    client: VTEXClient,
-    store_url: str,
-    max_products: int = 20,
-    max_variations: int = 5,
-    utm_source: Optional[str] = None,
-) -> Dict[str, Dict]:
-    """
-    Processa produtos brutos da API VTEX.
-    
-    Formata, filtra e limita produtos e variações.
-
-    Args:
-        raw_products: Lista de produtos brutos da API VTEX
-        client: Instância do VTEXClient
-        store_url: URL da loja
-        max_products: Número máximo de produtos
-        max_variations: Número máximo de variações por produto
-        utm_source: UTM source para links
-
-    Returns:
-        Dicionário com produtos estruturados {nome_produto: dados}
-    """
-    products_structured = {}
-    product_count = 0
-
-    for product in raw_products:
-        if product_count >= max_products:
-            break
-
-        if not product.get("items"):
-            continue
-
-        product_name_vtex = product.get("productName", "")
-        categories = product.get("categories", [])
-
-        # Processa variações
-        variations = []
-        for item in product.get("items", []):
-            sku_id = item.get("itemId")
-            if not sku_id:
-                continue
-
-            sku_name = item.get("nameComplete")
-            variation_items = item.get("variations", [])
-            variations_text = client._format_variations(variation_items)
-
-            # Extrai imagem
-            image_url = ""
-            if item.get("images") and isinstance(item["images"], list):
-                for img in item["images"]:
-                    img_url = img.get("imageUrl", "")
-                    if img_url:
-                        image_url = client._clean_image_url(img_url)
-                        break
-
-            # Seleciona melhor seller e extrai preços
-            seller_data, seller_id = client._select_best_seller(item.get("sellers", []))
-
-            prices = {}
-            if seller_data:
-                prices = client._extract_prices_from_seller(seller_data)
-
-            variation = {
-                "sku_id": sku_id,
-                "sku_name": sku_name,
-                "variations": variations_text,
-                "price": prices.get("price"),
-                "spotPrice": prices.get("spot_price"),
-                "listPrice": prices.get("list_price"),
-                "pixPrice": prices.get("pix_price"),
-                "creditCardPrice": prices.get("credit_card_price"),
-                "imageUrl": image_url,
-                "sellerId": seller_id,
-            }
-            variations.append(variation)
-
-        if variations:
-            # Limita variações por produto
-            limited_variations = variations[:max_variations]
-
-            # Descrição truncada
-            description = product.get("description", "")
-            if len(description) > 200:
-                description = description[:200] + "..."
-
-            # Especificações formatadas
-            spec_groups = product.get("specificationGroups", [])
-            simplified_specs = client._format_specifications(spec_groups)
-
-            # Imagem do produto (primeiro item)
-            product_image_url = ""
-            first_item = product.get("items", [None])[0]
-            if first_item and "images" in first_item and first_item["images"]:
-                product_image_url = client._clean_image_url(
-                    first_item["images"][0].get("imageUrl", "")
-                )
-
-            # Link do produto
-            product_link = f"{store_url}{product.get('link', '')}"
-            if utm_source:
-                product_link += f"?utm_source={utm_source}"
-
-            products_structured[product_name_vtex] = {
-                "variations": limited_variations,
-                "description": description,
-                "brand": product.get("brand", ""),
-                "specification_groups": simplified_specs,
-                "productLink": product_link,
-                "imageUrl": product_image_url,
-                "categories": categories,
-            }
-            product_count += 1
-
-    return products_structured
