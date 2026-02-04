@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from weni_utils.tools.proxy import ProxyRequest
+from weni_utils.tools.client import OrderDataProxy
 
 class TestProxyRequest:
     """Tests for proxy request functionality."""
@@ -25,4 +26,19 @@ class TestProxyRequest:
             method="GET",
         )
 
+        print(result)
+
+    def test_get_order_id_proxy(self):
+        """Test making a proxy request to get order by ID."""
+        # Create a mock context
+        mock_context = MagicMock()
+        mock_context.project = {"auth_token": ""}
+        mock_context.credentials = {}
+        mock_context.parameters = {}
+        mock_context.globals = {}
+        mock_context.contact = {}
+        mock_context.constants = {}
+
+        order_data_proxy = OrderDataProxy(context=mock_context)
+        result = order_data_proxy.get_order_details_proxy(email="")
         print(result)
