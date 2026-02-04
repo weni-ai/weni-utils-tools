@@ -1,7 +1,7 @@
 """
-PluginBase - Classe base para todos os plugins
+PluginBase - Base class for all plugins
 
-Define a interface que todos os plugins devem seguir.
+Defines the interface that all plugins must follow.
 """
 
 from typing import TYPE_CHECKING, Any, Dict, List
@@ -13,22 +13,22 @@ if TYPE_CHECKING:
 
 class PluginBase:
     """
-    Classe base abstrata para plugins.
+    Abstract base class for plugins.
 
-    Plugins são extensões que podem modificar o comportamento do ProductConcierge
-    em diferentes pontos do fluxo de busca.
+    Plugins are extensions that can modify ProductConcierge behavior
+    at different points in the search flow.
 
-    Hooks disponíveis (em ordem de execução):
-    1. before_search - Antes da busca (modificar contexto)
-    2. after_search - Após busca (modificar produtos)
-    3. after_stock_check - Após verificação de estoque
-    4. enrich_products - Enriquecer com dados adicionais
-    5. finalize_result - Última modificação antes de retornar
+    Available hooks (in order of execution):
+    1. before_search - Before search (modify context)
+    2. after_search - After search (modify products)
+    3. after_stock_check - After stock check
+    4. enrich_products - Enrich with additional data
+    5. finalize_result - Last modification before returning
 
     Example:
         class MyPlugin(PluginBase):
             def before_search(self, context, client):
-                # Adiciona region_id ao contexto
+                # Add region_id to context
                 context.region_id = self.get_region(context.postal_code)
                 return context
     """
@@ -37,20 +37,20 @@ class PluginBase:
 
     def before_search(self, context: "SearchContext", client: "VTEXClient") -> "SearchContext":
         """
-        Hook executado ANTES da busca inteligente.
+        Hook executed BEFORE intelligent search.
 
-        Use este hook para:
-        - Modificar parâmetros de busca
-        - Obter region_id para regionalização
-        - Obter lista de sellers
-        - Validar dados de entrada
+        Use this hook to:
+        - Modify search parameters
+        - Get region_id for regionalization
+        - Get list of sellers
+        - Validate input data
 
         Args:
-            context: Contexto da busca
-            client: Cliente VTEX
+            context: Search context
+            client: VTEX client
 
         Returns:
-            Contexto modificado (ou o mesmo)
+            Modified context (or the same)
         """
         return context
 
@@ -58,20 +58,20 @@ class PluginBase:
         self, products: Dict[str, Dict], context: "SearchContext", client: "VTEXClient"
     ) -> Dict[str, Dict]:
         """
-        Hook executado APÓS a busca inteligente.
+        Hook executed AFTER intelligent search.
 
-        Use este hook para:
-        - Filtrar produtos por critérios customizados
-        - Modificar dados dos produtos
-        - Adicionar informações extras
+        Use this hook to:
+        - Filter products by custom criteria
+        - Modify product data
+        - Add extra information
 
         Args:
-            products: Produtos encontrados na busca
-            context: Contexto da busca
-            client: Cliente VTEX
+            products: Products found in search
+            context: Search context
+            client: VTEX client
 
         Returns:
-            Produtos modificados
+            Modified products
         """
         return products
 
@@ -79,20 +79,20 @@ class PluginBase:
         self, products_with_stock: List[Dict], context: "SearchContext", client: "VTEXClient"
     ) -> List[Dict]:
         """
-        Hook executado APÓS verificação de estoque.
+        Hook executed AFTER stock check.
 
-        Use este hook para:
-        - Adicionar informações de preço especial
-        - Modificar dados de estoque
-        - Filtrar produtos por disponibilidade customizada
+        Use this hook to:
+        - Add special price information
+        - Modify stock data
+        - Filter products by custom availability
 
         Args:
-            products_with_stock: Lista de produtos com estoque
-            context: Contexto da busca
-            client: Cliente VTEX
+            products_with_stock: List of products with stock
+            context: Search context
+            client: VTEX client
 
         Returns:
-            Lista de produtos modificada
+            Modified product list
         """
         return products_with_stock
 
@@ -100,37 +100,37 @@ class PluginBase:
         self, products: Dict[str, Dict], context: "SearchContext", client: "VTEXClient"
     ) -> Dict[str, Dict]:
         """
-        Hook para enriquecer produtos com dados adicionais.
+        Hook to enrich products with additional data.
 
-        Use este hook para:
-        - Adicionar dimensões/peso
-        - Adicionar preços especiais
-        - Adicionar informações de seller
+        Use this hook to:
+        - Add dimensions/weight
+        - Add special prices
+        - Add seller information
 
         Args:
-            products: Produtos filtrados
-            context: Contexto da busca
-            client: Cliente VTEX
+            products: Filtered products
+            context: Search context
+            client: VTEX client
 
         Returns:
-            Produtos enriquecidos
+            Enriched products
         """
         return products
 
     def finalize_result(self, result: Dict[str, Any], context: "SearchContext") -> Dict[str, Any]:
         """
-        Hook para finalizar o resultado antes de retornar.
+        Hook to finalize the result before returning.
 
-        Use este hook para:
-        - Adicionar mensagens no resultado
-        - Enviar eventos (analytics, webhooks)
-        - Modificar estrutura final
+        Use this hook to:
+        - Add messages to result
+        - Send events (analytics, webhooks)
+        - Modify final structure
 
         Args:
-            result: Resultado final
-            context: Contexto da busca
+            result: Final result
+            context: Search context
 
         Returns:
-            Resultado modificado
+            Modified result
         """
         return result

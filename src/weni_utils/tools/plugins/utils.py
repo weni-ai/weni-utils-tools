@@ -1,8 +1,8 @@
 """
-Plugin Utilities - Funções standalone para uso direto
+Plugin Utilities - Standalone functions for direct use
 
-Funções utilitárias que podem ser chamadas diretamente sem precisar instanciar plugins.
-Essas funções usam os plugins internamente.
+Utility functions that can be called directly without instantiating plugins.
+These functions use the plugins internally.
 """
 
 from typing import Any, Dict, List, Optional
@@ -21,11 +21,11 @@ def simulate_cart(
     timeout: int = 30,
 ) -> Dict:
     """
-    Realiza simulação de carrinho para verificar disponibilidade.
+    Perform cart simulation to check availability.
 
     Args:
         base_url: VTEX API base URL
-        items: Lista de itens [{"id": "sku_id", "quantity": 1, "seller": "1"}]
+        items: List of items [{"id": "sku_id", "quantity": 1, "seller": "1"}]
         country: Country code (default: "BRA")
         postal_code: Postal code (optional)
         timeout: Timeout (default: 30)
@@ -59,12 +59,12 @@ def simulate_cart_batch(
     timeout: int = 30,
 ) -> Optional[Dict]:
     """
-    Simula um SKU específico com múltiplos sellers (usado para regionalização).
+    Simulate a specific SKU with multiple sellers (used for regionalization).
 
     Args:
         base_url: VTEX API base URL
         sku_id: SKU ID
-        sellers: Lista de sellers
+        sellers: List of sellers
         postal_code: Postal code
         quantity: Desired quantity (default: 1)
         max_quantity_per_seller: Maximum quantity per seller (default: 8000)
@@ -105,11 +105,11 @@ def check_stock_availability(
     timeout: int = 30,
 ) -> Dict[str, bool]:
     """
-    Verifica disponibilidade de estoque para uma lista de SKUs.
+    Check stock availability for a list of SKUs.
 
     Args:
         base_url: VTEX API base URL
-        sku_ids: Lista de SKU IDs
+        sku_ids: List of SKU IDs
         seller: Seller ID (default: "1")
         quantity: Quantity to check (default: 1)
         country: Country code (default: "BRA")
@@ -147,7 +147,7 @@ def get_product_price(
     timeout: int = 30,
 ) -> Dict[str, Optional[float]]:
     """
-    Obtém preço de um produto via simulação de carrinho.
+    Get product price via cart simulation.
 
     Args:
         base_url: VTEX API base URL
@@ -183,7 +183,7 @@ def send_capi_event(
     timeout: int = 10,
 ) -> bool:
     """
-    Envia evento de conversão para a Meta (CAPI - Conversions API).
+    Send conversion event to Meta (CAPI - Conversions API).
 
     Args:
         auth_token: Authentication token
@@ -219,7 +219,7 @@ def trigger_weni_flow(
     timeout: int = 10,
 ) -> bool:
     """
-    Dispara um fluxo Weni para um contato.
+    Trigger a Weni flow for a contact.
 
     Args:
         api_token: Weni API authentication token
@@ -256,7 +256,7 @@ def get_region(
     timeout: int = 30,
 ) -> tuple[Optional[str], Optional[str], List[str]]:
     """
-    Consulta a API de regionalização para obter região e sellers.
+    Query the regionalization API to get region and sellers.
 
     Args:
         base_url: VTEX API base URL
@@ -284,13 +284,6 @@ def get_region(
         postal_code=postal_code, trade_policy=sales_channel, country_code=country
     )
 
-    # Convert error messages to English for consistency
-    if error_message:
-        if "Não atendemos" in error_message:
-            error_message = "Region not served. Please visit our stores."
-        elif "sellers" in error_message.lower():
-            error_message = "No sellers available for this region."
-
     return region_id, error_message, sellers
 
 
@@ -302,7 +295,7 @@ def get_sellers_by_region(
     timeout: int = 30,
 ) -> List[str]:
     """
-    Retorna apenas a lista de sellers para uma região.
+    Return only the list of sellers for a region.
 
     Args:
         base_url: VTEX API base URL
@@ -312,7 +305,7 @@ def get_sellers_by_region(
         timeout: Timeout (default: 30)
 
     Returns:
-        Lista de seller IDs
+        List of seller IDs
 
     Example:
         sellers = get_sellers_by_region(
@@ -334,7 +327,7 @@ def get_wholesale_price(
     timeout: int = 10,
 ) -> Dict[str, Optional[Any]]:
     """
-    Obtém preço de atacado (quantidade mínima e valor) para um SKU.
+    Get wholesale price (minimum quantity and value) for a SKU.
 
     Args:
         sku_id: SKU ID
@@ -343,7 +336,7 @@ def get_wholesale_price(
         timeout: Timeout (default: 10)
 
     Returns:
-        Dicionário com minQuantity e valueAtacado
+        Dictionary with minQuantity and valueAtacado
 
     Example:
         price = get_wholesale_price(

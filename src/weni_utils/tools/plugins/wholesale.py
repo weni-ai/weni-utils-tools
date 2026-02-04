@@ -1,8 +1,8 @@
 """
-Wholesale Plugin - Preços de Atacado
+Wholesale Plugin - Wholesale Prices
 
-Plugin para clientes que trabalham com preços de atacado (quantidade mínima).
-Adiciona informações de minQuantity e valueAtacado aos produtos.
+Plugin for clients that work with wholesale prices (minimum quantity).
+Adds minQuantity and valueAtacado information to products.
 """
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -18,12 +18,12 @@ if TYPE_CHECKING:
 
 class Wholesale(PluginBase):
     """
-    Plugin de preços de atacado.
+    Wholesale prices plugin.
 
-    Funcionalidades:
-    - Busca preço de atacado (valueAtacado) por SKU
-    - Busca quantidade mínima (minQuantity) para preço de atacado
-    - Adiciona informações aos produtos após verificação de estoque
+    Features:
+    - Gets wholesale price (valueAtacado) by SKU
+    - Gets minimum quantity (minQuantity) for wholesale price
+    - Adds information to products after stock check
 
     Example:
         concierge = ProductConcierge(
@@ -31,7 +31,7 @@ class Wholesale(PluginBase):
             store_url="...",
             plugins=[
                 Wholesale(
-                    fixed_price_url="https://www.loja.com.br/fixedprices"
+                    fixed_price_url="https://www.store.com.br/fixedprices"
                 )
             ]
         )
@@ -41,12 +41,12 @@ class Wholesale(PluginBase):
 
     def __init__(self, fixed_price_url: Optional[str] = None, timeout: int = 10):
         """
-        Inicializa o plugin de atacado.
+        Initialize the wholesale plugin.
 
         Args:
-            fixed_price_url: URL base para consulta de preços fixos
-                            Se não fornecida, tenta derivar da URL da loja
-            timeout: Timeout para requisições
+            fixed_price_url: Base URL for fixed prices API
+                            If not provided, tries to derive from store URL
+            timeout: Request timeout
         """
         self.fixed_price_url = fixed_price_url
         self.timeout = timeout
@@ -56,15 +56,15 @@ class Wholesale(PluginBase):
         self, products_with_stock: List[Dict], context: "SearchContext", client: "VTEXClient"
     ) -> List[Dict]:
         """
-        Adiciona informações de preço de atacado após verificação de estoque.
+        Add wholesale price information after stock check.
         """
         if not products_with_stock:
             return products_with_stock
 
-        # Define URL base se não foi fornecida
+        # Define base URL if not provided
         base_url = self.fixed_price_url
         if not base_url:
-            # Tenta derivar da store_url do client
+            # Try to derive from client's store_url
             base_url = f"{client.store_url}/fixedprices"
 
         enriched_products = []
@@ -93,19 +93,19 @@ class Wholesale(PluginBase):
         self, base_url: str, seller_id: str, sku_id: str
     ) -> Dict[str, Optional[Any]]:
         """
-        Busca preço fixo (atacado) para um SKU.
+        Get fixed price (wholesale) for a SKU.
 
         Args:
-            base_url: URL base para a API de preços fixos
-            seller_id: ID do seller
-            sku_id: ID do SKU
+            base_url: Base URL for fixed prices API
+            seller_id: Seller ID
+            sku_id: SKU ID
 
         Returns:
-            Dicionário com minQuantity e valueAtacado
+            Dictionary with minQuantity and valueAtacado
         """
         cache_key = f"{seller_id}:{sku_id}"
 
-        # Verifica cache
+        # Check cache
         if cache_key in self._cache:
             return self._cache[cache_key]
 
@@ -126,15 +126,15 @@ class Wholesale(PluginBase):
                 "valueAtacado": data.get("value") if isinstance(data, dict) else None,
             }
 
-            # Salva no cache
+            # Save to cache
             self._cache[cache_key] = result
 
             return result
 
         except Exception as e:
-            print(f"ERROR: Erro ao buscar preço de atacado: {e}")
+            print(f"ERROR: Error getting wholesale price: {e}")
             return default_response
 
     def clear_cache(self) -> None:
-        """Limpa o cache de preços."""
+        """Clear the price cache."""
         self._cache.clear()
