@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from .client import VTEXClient
 from .context import SearchContext
 from .stock import StockManager
+from .utils import Utils
 
 
 class PluginBase:
@@ -98,7 +99,7 @@ class PluginBase:
         return result
 
 
-class ProductConcierge(VTEXClient, StockManager, PluginBase):
+class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
     """
     Main class for VTEX product search.
 
@@ -216,17 +217,22 @@ class ProductConcierge(VTEXClient, StockManager, PluginBase):
             if hasattr(context, key):
                 setattr(context, key, value)
 
-        # 2. Execute before_search hooks
-        context = self.before_search(context, self)
+        # 2. Get region
+        if context.postal_code:
+            context.region_id, context.region_error, context.sellers = self.get_region(
+                postal_code=context.postal_code,
+                trade_policy=context.trade_policy,
+                country_code=context.country_code
+            )
 
-        # 3. Perform intelligent search (returns raw data)
+        # 2. Perform intelligent search (returns raw data)
         raw_products = self.intelligent_search(
             product_name=context.product_name,
             brand_name=context.brand_name,
             region_id=context.region_id,
         )
 
-        # 4. Process raw products (format, filter, limit)
+        # 3. Process raw products (format, filter, limit)
         products = self.process_products(
             raw_products=raw_products,
             max_products=self.max_products,
@@ -234,47 +240,26 @@ class ProductConcierge(VTEXClient, StockManager, PluginBase):
             utm_source=self.utm_source,
         )
 
-        # 5. Execute after_search hooks
-        products = self.after_search(products, context, self)
+        products_with_stock = self.check_availability_with_sellers(
+            client=self,
+            products=products,
+            context=context,
+            sellers=context.sellers,
+            priority_categories=self.priority_categories,
+        )
 
-        # 6. Check stock availability
-        if context.sellers:
-            # Use simulation with specific sellers
-            products_with_stock = self.check_availability_with_sellers(
-                client=self,
-                products=products,
-                context=context,
-                priority_categories=self.priority_categories,
-            )
-        else:
-            # Use simple simulation
-            products_with_stock = self.check_availability_simple(
-                client=self, products=products, context=context
-            )
 
-        # 7. Execute after_stock_check hooks
-        products_with_stock = self.after_stock_check(products_with_stock, context, self)
-
-        # 8. Filter products, keeping only those with stock
+        # 5. Filter products, keeping only those with stock
         filtered_products = self.filter_products_with_stock(
             products, products_with_stock
         )
 
-        # 9. Execute enrichment hooks
-        filtered_products = self.enrich_products(filtered_products, context, self)
-
-        # 10. Limit payload size
+        # 6. Limit payload size
         filtered_products = self.limit_payload_size(
             filtered_products, self.max_payload_kb
         )
 
-        # 11. Build final result
-        result = self._build_result(filtered_products, context)
-
-        # 12. Execute finalization hooks
-        result = self.finalize_result(result, context)
-
-        return result
+        return filtered_products
 
     def _build_result(self, products: Dict[str, Dict], context: SearchContext) -> Dict[str, Any]:
         """

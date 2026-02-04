@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Set
 from .context import SearchContext
 
 
-class StockManager:
+class StockManager():
     """
     Stock and product availability manager.
 
@@ -155,44 +155,77 @@ class StockManager:
             return []
 
         priority_categories = priority_categories or []
-        products_with_stock = []
 
+        # Build all SKUs with their quantities (single loop)
+        skus = []
         for product in products_details:
             sku_id = product.get("sku_id")
+            if not sku_id:
+                continue
+
             categories = product.get("categories", [])
-
-            # Check if it's a priority category
             is_priority = self._is_priority_category(categories, priority_categories)
+            quantity = max(context.quantity, 1) if is_priority else context.quantity
 
-            # Define quantity for simulation
-            if is_priority:
-                simulation_quantity = max(context.quantity, 1000)
-            else:
-                simulation_quantity = context.quantity
+            skus.append({"sku_id": sku_id, "quantity": quantity})
 
-            # Execute batch simulation
-            simulation_result = client.batch_simulation(
-                sku_id=sku_id,
-                quantity=simulation_quantity,
-                sellers=context.sellers,
-                postal_code=context.postal_code,
-            )
+        if not skus:
+            return []
 
-            if simulation_result and simulation_result.get("quantity", 0) > 0:
-                # Enrich product with simulation information
+        # Execute batch simulation ONCE for all SKUs
+        simulation_result = client.batch_simulation(
+            skus=skus,
+            sellers=context.sellers,
+            postal_code=context.postal_code,
+        )
+
+        if not simulation_result:
+            return []
+
+        # Process results and enrich products
+        products_with_stock = []
+        for product in products_details:
+            sku_id = product.get("sku_id")
+            simulation_item = self._get_best_simulation_item(simulation_result, sku_id)
+
+            if simulation_item and simulation_item.get("availability") == "available":
                 product_with_stock = product.copy()
                 product_with_stock.update(
                     {
-                        "measurementUnit": simulation_result.get("measurementUnit", ""),
-                        "unitMultiplier": simulation_result.get("unitMultiplier", 1),
-                        "deliveryType": simulation_result.get("deliveryType", ""),
-                        "sellerId": simulation_result.get("sellerId", ""),
-                        "available_quantity": simulation_result.get("quantity", 0),
+                        "measurementUnit": simulation_item.get("measurementUnit", ""),
+                        "unitMultiplier": simulation_item.get("unitMultiplier", 1),
+                        "sellerId": simulation_item.get("seller", ""),
+                        "available_quantity": simulation_item.get("quantity", 0),
                     }
                 )
                 products_with_stock.append(product_with_stock)
 
         return products_with_stock
+
+    def _get_best_simulation_item(
+        self, simulation_result: Optional[Dict], sku_id: str
+    ) -> Optional[Dict]:
+        """
+        Extract the best simulation item for a specific SKU.
+
+        Args:
+            simulation_result: Full simulation response
+            sku_id: SKU ID to find
+
+        Returns:
+            Best simulation item or None
+        """
+        if not simulation_result:
+            return None
+
+        items = simulation_result.get("items", [])
+        sku_items = [item for item in items if item.get("id") == sku_id]
+
+        if not sku_items:
+            return None
+
+        # Return item with highest quantity
+        return max(sku_items, key=lambda x: x.get("quantity", 0))
 
     def _is_priority_category(self, categories: List[str], priority_categories: List[str]) -> bool:
         """

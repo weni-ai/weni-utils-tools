@@ -84,38 +84,34 @@ class CartSimulation:
 
     def simulate_batch(
         self,
-        sku_id: str,
+        skus: List[Dict[str, int]],
         sellers: List[str],
         postal_code: str,
-        quantity: int = 1,
         max_quantity_per_seller: int = 8000,
         max_total_quantity: int = 24000,
     ) -> Optional[Dict]:
         """
-        Simulate a specific SKU with multiple sellers (used for regionalization).
+        Simulate multiple SKUs with multiple sellers (used for regionalization).
 
         Args:
-            sku_id: SKU ID
-            quantity: Desired quantity (default: 1)
+            skus: List of SKUs with quantities, e.g. [{"sku_id": "123", "quantity": 2}, ...]
             sellers: List of sellers
             postal_code: Postal code
             max_quantity_per_seller: Maximum quantity per seller (default: 8000)
             max_total_quantity: Maximum total quantity (default: 24000)
 
         Returns:
-            Best simulation result or None
+            Simulation result or None
 
         Example:
             result = cart.simulate_batch(
-                sku_id="61556",
+                skus=[{"sku_id": "61556", "quantity": 10}],
                 sellers=["store1000", "store1003"],
                 postal_code="01310-100",
-                quantity=10
             )
         """
         return self.client.batch_simulation(
-            sku_id=sku_id,
-            quantity=quantity,
+            skus=skus,
             sellers=sellers,
             postal_code=postal_code,
             max_quantity_per_seller=max_quantity_per_seller,

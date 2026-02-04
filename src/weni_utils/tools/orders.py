@@ -97,17 +97,18 @@ class OrderConcierge:
         else:
             return data
 
-    def search_orders(self, document: str) -> Dict[str, Any]:
+    def search_orders(self, document: str, incomplete_orders: bool = False) -> Dict[str, Any]:
         """
         Search orders by document.
 
         Args:
             document: Customer document
-
+            incomplete_orders: Whether to include incomplete orders
+                Default is False (only complete orders)
         Returns:
             Dictionary with orders and current date
         """
-        orders_data = self.client.get_orders_by_document(document)
+        orders_data = self.client.get_orders_by_document(document, incomplete_orders=incomplete_orders)
         converted_orders = self._convert_cents(orders_data)
 
         return {
