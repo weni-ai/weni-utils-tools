@@ -40,5 +40,5 @@ class TestProxyRequest:
         mock_context.constants = {}
 
         order_data_proxy = OrderDataProxy(context=mock_context)
-        result = order_data_proxy.get_order_details_proxy(email="")
+        result = order_data_proxy.get_order_details_proxy(email="example@example.com")
         print(result)
