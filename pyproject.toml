@@ -45,7 +45,8 @@ classifiers = [
 
 dependencies = [
     "requests>=2.28.0,<3.0.0",
-    "pytz>=2023.3"
+    "pytz>=2023.3",
+    "weni-agents-toolkit"
 ]
 
 [project.optional-dependencies]

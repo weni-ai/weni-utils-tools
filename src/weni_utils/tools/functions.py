@@ -8,7 +8,7 @@ This module uses VTEXClient internally to avoid code duplication.
 All functions maintain the same public API for backward compatibility.
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .client import VTEXClient
 
@@ -229,5 +229,3 @@ def get_sku_details(
 
     # Use get_sku_details from client
     return client.get_sku_details(sku_id)
-
-

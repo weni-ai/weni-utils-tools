@@ -7,7 +7,7 @@ extracted and consolidated from existing agents.
 
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 import requests
 
