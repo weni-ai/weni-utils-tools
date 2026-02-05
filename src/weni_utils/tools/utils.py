@@ -1,4 +1,5 @@
-from typing import Any, Tuple, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+
 
 class Utils:
     def process_products(
@@ -61,7 +62,7 @@ class Utils:
                 "brand": product.get("brand", ""),
                 "specification_groups": self._format_specifications(
                     product.get("specificationGroups", []),
-                    remove_specifications=remove_specifications
+                    remove_specifications=remove_specifications,
                 ),
                 "productLink": product_link,
                 "imageUrl": self._get_product_image(product),
@@ -89,18 +90,20 @@ class Utils:
             seller_data, seller_id = self._select_best_seller(item.get("sellers", []))
             prices = self._extract_prices_from_seller(seller_data) if seller_data else {}
 
-            variations.append({
-                "sku_id": sku_id,
-                "sku_name": item.get("nameComplete"),
-                "variations": self._format_variations(item.get("variations", [])),
-                "price": prices.get("price"),
-                "spotPrice": prices.get("spot_price"),
-                "listPrice": prices.get("list_price"),
-                "pixPrice": prices.get("pix_price"),
-                "creditCardPrice": prices.get("credit_card_price"),
-                "imageUrl": self._get_first_image(item.get("images", [])),
-                "sellerId": seller_id,
-            })
+            variations.append(
+                {
+                    "sku_id": sku_id,
+                    "sku_name": item.get("nameComplete"),
+                    "variations": self._format_variations(item.get("variations", [])),
+                    "price": prices.get("price"),
+                    "spotPrice": prices.get("spot_price"),
+                    "listPrice": prices.get("list_price"),
+                    "pixPrice": prices.get("pix_price"),
+                    "creditCardPrice": prices.get("credit_card_price"),
+                    "imageUrl": self._get_first_image(item.get("images", [])),
+                    "sellerId": seller_id,
+                }
+            )
 
         return variations
 
@@ -183,42 +186,42 @@ class Utils:
         return current
 
     def _extract_prices_from_seller(self, seller_data: Dict) -> Dict[str, Optional[float]]:
-            """
-            Extract prices from a seller, including PIX and credit card.
+        """
+        Extract prices from a seller, including PIX and credit card.
 
-            Args:
-                seller_data: Seller data
+        Args:
+            seller_data: Seller data
 
-            Returns:
-                Dictionary with extracted prices
-            """
-            commercial_offer = seller_data.get("commertialOffer", {})
-            installments = commercial_offer.get("Installments", [])
+        Returns:
+            Dictionary with extracted prices
+        """
+        commercial_offer = seller_data.get("commertialOffer", {})
+        installments = commercial_offer.get("Installments", [])
 
-            prices = {
-                "price": commercial_offer.get("Price"),
-                "spot_price": commercial_offer.get("spotPrice"),
-                "list_price": commercial_offer.get("ListPrice"),
-                "pix_price": None,
-                "credit_card_price": None,
-            }
+        prices = {
+            "price": commercial_offer.get("Price"),
+            "spot_price": commercial_offer.get("spotPrice"),
+            "list_price": commercial_offer.get("ListPrice"),
+            "pix_price": None,
+            "credit_card_price": None,
+        }
 
-            # Search for PIX price
-            for installment in installments:
-                if installment.get("PaymentSystemName") == "Pix":
-                    prices["pix_price"] = installment.get("Value")
-                    break
+        # Search for PIX price
+        for installment in installments:
+            if installment.get("PaymentSystemName") == "Pix":
+                prices["pix_price"] = installment.get("Value")
+                break
 
-            # Search for credit card price (single payment)
-            for installment in installments:
-                if (
-                    installment.get("PaymentSystemName") in ["Visa", "Mastercard", "American Express"]
-                    and installment.get("NumberOfInstallments") == 1
-                ):
-                    prices["credit_card_price"] = installment.get("Value")
-                    break
+        # Search for credit card price (single payment)
+        for installment in installments:
+            if (
+                installment.get("PaymentSystemName") in ["Visa", "Mastercard", "American Express"]
+                and installment.get("NumberOfInstallments") == 1
+            ):
+                prices["credit_card_price"] = installment.get("Value")
+                break
 
-            return prices
+        return prices
 
     def _select_best_seller(self, sellers: List[Dict]) -> Tuple[Optional[Dict], Optional[str]]:
         """
@@ -254,21 +257,20 @@ class Utils:
         # Fallback: first available
         return sellers[0], sellers[0].get("sellerId")
 
-
     def _clean_image_url(self, img_url: str) -> str:
-            """Remove query parameters from image URL"""
-            if not img_url:
-                return ""
+        """Remove query parameters from image URL"""
+        if not img_url:
+            return ""
 
-            # Remove query parameters
-            if "?" in img_url:
-                img_url = img_url.split("?")[0]
+        # Remove query parameters
+        if "?" in img_url:
+            img_url = img_url.split("?")[0]
 
-            # Remove fragment identifier
-            if "#" in img_url:
-                img_url = img_url.split("#")[0]
+        # Remove fragment identifier
+        if "#" in img_url:
+            img_url = img_url.split("#")[0]
 
-            return img_url
+        return img_url
 
     def _format_name_value_pairs(self, items: List[Dict]) -> str:
         """
@@ -299,7 +301,13 @@ class Utils:
         """
         return self._format_name_value_pairs(variation_items)
 
-    def _format_specifications(self, spec_groups: List[Dict], max_groups: int = 3, max_specifications_per_group: int = 5, remove_specifications: Optional[List[str]] = None) -> List[Dict]:
+    def _format_specifications(
+        self,
+        spec_groups: List[Dict],
+        max_groups: int = 3,
+        max_specifications_per_group: int = 5,
+        remove_specifications: Optional[List[str]] = None,
+    ) -> List[Dict]:
         """
         Format specification groups in a simplified way.
 
@@ -322,7 +330,11 @@ class Utils:
 
         # Try to find the "allSpecifications" group first
         all_specs_group = next(
-            (g for g in spec_groups if g.get("name") == "allSpecifications" and g.get("specifications")),
+            (
+                g
+                for g in spec_groups
+                if g.get("name") == "allSpecifications" and g.get("specifications")
+            ),
             None,
         )
 
