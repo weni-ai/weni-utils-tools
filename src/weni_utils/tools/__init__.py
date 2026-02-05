@@ -34,7 +34,6 @@ from .plugins import (
     get_product_price,
     get_region,
     get_sellers_by_region,
-    get_wholesale_price,
     send_capi_event,
     simulate_cart,
     simulate_cart_batch,
@@ -61,7 +60,6 @@ __all__ = [
     "get_product_price",
     "get_region",
     "get_sellers_by_region",
-    "get_wholesale_price",
     "send_capi_event",
     "trigger_weni_flow",
 ]
