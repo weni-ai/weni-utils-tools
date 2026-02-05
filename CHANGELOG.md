@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Plugins
 - `Regionalization` - Postal code-based region and seller selection
-- `Wholesale` - Wholesale pricing (minQuantity, valueAtacado)
 - `Carousel` - WhatsApp carousel message formatting and sending
 - `CAPI` - Meta Conversions API integration
 - `WeniFlowTrigger` - Weni flow triggering

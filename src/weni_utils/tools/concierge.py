@@ -114,12 +114,12 @@ class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
 
     Example:
         from weni_utils.tools import ProductConcierge
-        from weni_utils.tools.plugins import Regionalization, Wholesale
+        from weni_utils.tools.plugins import Regionalization
 
         concierge = ProductConcierge(
             base_url="https://loja.vtexcommercestable.com.br",
             store_url="https://loja.com.br",
-            plugins=[Regionalization(), Wholesale()]
+            plugins=[Regionalization()]
         )
 
         # Full search with plugins and stock verification

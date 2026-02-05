@@ -8,7 +8,6 @@ DEPOIS: ~50 linhas importando da biblioteca
 
 Plugins utilizados:
 - Regionalization: Para busca por CEP
-- Wholesale: Para preços de atacado
 - WeniFlowTrigger: Para disparar fluxos de tracking
 """
 
@@ -18,7 +17,7 @@ from weni.responses import TextResponse
 
 # Importa da biblioteca centralizada
 from weni_utils.tools import ProductConcierge
-from weni_utils.tools.plugins import Regionalization, Wholesale, WeniFlowTrigger
+from weni_utils.tools.plugins import Regionalization, WeniFlowTrigger
 
 
 class SearchProduct(Tool):
@@ -61,10 +60,6 @@ class SearchProduct(Tool):
             require_delivery_type_for_priority=True
         )
         
-        wholesale = Wholesale(
-            fixed_price_url="https://www.mystore.com.br/fixedprices"
-        )
-        
         flow_trigger = WeniFlowTrigger(
             flow_uuid=context.credentials.get("EVENT_ID_CONCIERGE"),
             trigger_once=True
@@ -76,7 +71,7 @@ class SearchProduct(Tool):
             store_url=store_url,
             vtex_app_key=vtex_app_key,
             vtex_app_token=vtex_app_token,
-            plugins=[regionalization, wholesale, flow_trigger],
+            plugins=[regionalization, flow_trigger],
             max_products=20,
             max_variations=5,
             max_payload_kb=20,

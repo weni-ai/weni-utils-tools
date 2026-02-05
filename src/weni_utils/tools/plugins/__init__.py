@@ -5,14 +5,13 @@ Plugins are optional extensions that add specific functionalities.
 Each client can choose which plugins to use.
 
 Usage:
-    from weni_utils.tools.plugins import Regionalization, Wholesale, Carousel, CAPI
+    from weni_utils.tools.plugins import Regionalization, Carousel, CAPI
 
     concierge = ProductConcierge(
         base_url="...",
         store_url="...",
         plugins=[
             Regionalization(),
-            Wholesale(fixed_price_url="..."),
         ]
     )
 """
@@ -33,14 +32,12 @@ from .utils import (
     trigger_weni_flow,
 )
 from .weni_flow import WeniFlowTrigger
-from .wholesale import Wholesale
 from .send_message import SendMessage
 
 __all__ = [
     # Plugin classes
     "PluginBase",
     "Regionalization",
-    "Wholesale",
     "Carousel",
     "CAPI",
     "WeniFlowTrigger",
