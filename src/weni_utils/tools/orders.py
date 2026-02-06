@@ -32,6 +32,7 @@ class OrderConcierge:
         store_url: str,
         vtex_app_key: Optional[str] = None,
         vtex_app_token: Optional[str] = None,
+        timezone: str = "America/Sao_Paulo",
     ):
         """
         Initialize OrderConcierge.
@@ -41,6 +42,10 @@ class OrderConcierge:
             store_url: Store URL
             vtex_app_key: VTEX App Key (optional)
             vtex_app_token: VTEX App Token (optional)
+            timezone: Timezone for date/time formatting (default: America/Sao_Paulo)
+        
+        Raises:
+            ValueError: If the timezone is invalid
         """
         self.client = VTEXClient(
             base_url=base_url,
@@ -48,6 +53,14 @@ class OrderConcierge:
             vtex_app_key=vtex_app_key,
             vtex_app_token=vtex_app_token,
         )
+        
+        # Validate timezone
+        if timezone not in pytz.all_timezones:
+            raise ValueError(
+                f"Invalid timezone: '{timezone}'. "
+                f"Use pytz.all_timezones to see available options."
+            )
+        self.timezone = pytz.timezone(timezone)
 
     def _convert_cents(self, data: Any) -> Any:
         """
@@ -113,7 +126,7 @@ class OrderConcierge:
 
         return {
             "orders": converted_orders,
-            "brazil_time": datetime.now(pytz.timezone("America/Sao_Paulo")).strftime(
+            "current_time": datetime.now(self.timezone).strftime(
                 "%d/%m/%Y %H:%M:%S"
             ),
         }
@@ -137,7 +150,7 @@ class OrderConcierge:
 
         return {
             "order": converted_order,
-            "brazil_time": datetime.now(pytz.timezone("America/Sao_Paulo")).strftime(
+            "current_time": datetime.now(self.timezone).strftime(
                 "%d/%m/%Y %H:%M:%S"
             ),
         }
