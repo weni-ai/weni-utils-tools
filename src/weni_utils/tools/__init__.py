@@ -24,7 +24,7 @@ Usage (funcionalidades dos plugins):
     send_capi_event(auth_token, channel_uuid, contact_urn)
 """
 
-from .client import VTEXClient
+from .client import VTEXClient, OrderDataProxy
 from .concierge import ProductConcierge
 from .context import SearchContext
 from .functions import get_sku_details, search_product_by_sku, search_products
@@ -46,6 +46,7 @@ __all__ = [
     # Agentes fixos
     "ProductConcierge",
     "OrderConcierge",
+    "OrderDataProxy",
     # Classes base
     "VTEXClient",
     "StockManager",
