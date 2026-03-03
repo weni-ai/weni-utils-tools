@@ -117,9 +117,10 @@ target-version = "py39"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --cov=weni_utils --cov-report=term-missing"
+addopts = "-v"
 
 [tool.coverage.run]
 source = ["src/weni_utils"]
