@@ -105,13 +105,13 @@ class VTEXClient():
         """Validate if the base URL and store URL are valid"""
         if not self.base_url or not self.store_url:
             return False
-        
+
         if not self.base_url.startswith("https://") or not self.store_url.startswith("https://"):
             return False
 
         if not self.base_url.endswith((".vtexcommercestable.com.br", "myvtex.com")):
             return False
-        
+
         return True
 
     def intelligent_search(
@@ -126,7 +126,7 @@ class VTEXClient():
     ) -> List[Dict]:
         """
         Search products using VTEX Intelligent Search API.
-        
+
         Returns only raw data from the API, without processing.
         Formatting, filtering, and limiting logic should be done by the agent.
 
@@ -468,6 +468,22 @@ class VTEXClient():
         orders_data.setdefault("list", []).extend(new_orders)
 
         return orders_data
+
+    def create_order_form(self, sales_channel: int = 1) -> Optional[Dict]:
+        """
+        Create an order form.
+        """
+        url = f"{self.base_url}/api/checkout/pub/orderForms?sc={sales_channel}"
+        try:
+            response = requests.post(url, headers=self._get_auth_headers(), timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Error creating order form: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"ERROR: JSON processing error: {e}")
+            return None
 
     def get_order_by_id(self, order_id: str) -> Optional[Dict]:
         """
