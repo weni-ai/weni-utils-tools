@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Set
 from .context import SearchContext
 
 
-class StockManager():
+class StockManager:
     """
     Stock and product availability manager.
 

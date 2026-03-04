@@ -2,18 +2,19 @@
 ProxyRequest - Class for making proxy requests to the VTEX API.
 """
 
-from typing import Dict, Any, Optional
-
-from weni.context import Context
+from typing import Any, Dict, Optional
 
 import requests
+from weni.context import Context
 
 RETAIL_URL = "https://retailsetup.weni.ai"
+
 
 class ProxyRequest(Context):
     """
     Class for making proxy requests to the VTEX API.
     """
+
     def __init__(self, context: Context):
         super().__init__(
             parameters=context.parameters,
@@ -64,7 +65,9 @@ class ProxyRequest(Context):
 
         proxy_url = f"{RETAIL_URL}/vtex/proxy/"
 
-        body_request = self._format_body_proxy_request(body=body, method=method, headers=headers, path=path)
+        body_request = self._format_body_proxy_request(
+            body=body, method=method, headers=headers, path=path
+        )
 
         headers_request = {
             "Content-Type": "application/json",
@@ -73,12 +76,9 @@ class ProxyRequest(Context):
         }
 
         response = requests.post(
-            proxy_url,
-            json=body_request,
-            timeout=timeout,
-            headers=headers_request
+            proxy_url, json=body_request, timeout=timeout, headers=headers_request
         )
-        
+
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -93,8 +93,7 @@ class ProxyRequest(Context):
             except Exception:
                 pass
             raise requests.exceptions.HTTPError(
-                f"HTTP {response.status_code}: {error_detail}",
-                response=response
+                f"HTTP {response.status_code}: {error_detail}", response=response
             ) from e
 
         return response.json()

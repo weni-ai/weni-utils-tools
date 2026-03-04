@@ -21,6 +21,7 @@ from .capi import CAPI
 from .carousel import Carousel
 from .cart_simulation import CartSimulation
 from .regionalization import Regionalization
+from .send_message import SendMessage
 from .utils import (
     check_stock_availability,
     get_product_price,
@@ -32,7 +33,6 @@ from .utils import (
     trigger_weni_flow,
 )
 from .weni_flow import WeniFlowTrigger
-from .send_message import SendMessage
 
 __all__ = [
     # Plugin classes

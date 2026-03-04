@@ -78,9 +78,7 @@ class CartSimulation:
                 postal_code="01310-100"
             )
         """
-        return self.client.cart_simulation(
-            items=items, country=country, postal_code=postal_code
-        )
+        return self.client.cart_simulation(items=items, country=country, postal_code=postal_code)
 
     def simulate_batch(
         self,
@@ -146,9 +144,7 @@ class CartSimulation:
             )
             # {"61556": True, "82598": True, "40240": False}
         """
-        items = [
-            {"id": sku_id, "quantity": quantity, "seller": seller} for sku_id in sku_ids
-        ]
+        items = [{"id": sku_id, "quantity": quantity, "seller": seller} for sku_id in sku_ids]
 
         result = self.simulate(items=items, country=country, postal_code=postal_code)
 

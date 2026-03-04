@@ -5,10 +5,10 @@ Plugin for sending messages through Weni's WhatsApp Broadcast API.
 Supports sending text messages, templates, attachments, quick replies and footers.
 """
 
+import json
 from typing import Any, Dict, List, Optional, Union
 
 import requests
-import json
 
 from .base import PluginBase
 
