@@ -1,7 +1,7 @@
 """
-OrderConcierge - Classe principal para busca de pedidos
+OrderConcierge - Main class for order search
 
-Esta classe orquestra a busca de pedidos e tratamento de dados.
+This class orchestrates order search and data handling.
 """
 
 from datetime import datetime
@@ -9,17 +9,19 @@ from typing import Any, Dict, Optional
 
 import pytz
 
+from tzlocal.windows_tz import win_tz
+
 from .client import VTEXClient
 
 
 class OrderConcierge:
     """
-    Classe principal para busca de pedidos VTEX.
+    Main class for VTEX order search.
 
     Example:
         concierge = OrderConcierge(
-            base_url="https://loja.vtexcommercestable.com.br",
-            store_url="https://loja.com.br"
+            base_url="https://store.vtexcommercestable.com.br",
+            store_url="https://store.com.br"
         )
 
         orders = concierge.search_orders("12345678900")
@@ -34,13 +36,13 @@ class OrderConcierge:
         vtex_app_token: Optional[str] = None,
     ):
         """
-        Inicializa o OrderConcierge.
+        Initialize OrderConcierge.
 
         Args:
-            base_url: URL base da API VTEX
-            store_url: URL da loja
-            vtex_app_key: App Key VTEX (opcional)
-            vtex_app_token: App Token VTEX (opcional)
+            base_url: VTEX API base URL
+            store_url: Store URL
+            vtex_app_key: VTEX App Key (optional)
+            vtex_app_token: VTEX App Token (optional)
         """
         self.client = VTEXClient(
             base_url=base_url,
@@ -48,16 +50,31 @@ class OrderConcierge:
             vtex_app_key=vtex_app_key,
             vtex_app_token=vtex_app_token,
         )
+        self.timezone = self._get_timezone()
+
+
+    def _get_timezone(self):
+        """
+        Get store timezone from VTEX (Windows name) and return a pytz timezone object.
+        """
+        order_form = self.client.create_order_form()
+        store_preferences = order_form.get("storePreferences", {})
+
+        windows_tz = store_preferences.get("timeZone") or "E. South America Standard Time"
+        iana_tz = win_tz.get(windows_tz)
+        if iana_tz is None:
+            iana_tz = win_tz["E. South America Standard Time"]
+        return pytz.timezone(iana_tz)
 
     def _convert_cents(self, data: Any) -> Any:
         """
-        Converte valores em centavos para reais.
+        Convert values from cents to currency.
 
         Args:
-            data: Dados a converter
+            data: Data to convert
 
         Returns:
-            Dados convertidos
+            Converted data
         """
         currency_fields = [
             "totalValue",
@@ -97,35 +114,36 @@ class OrderConcierge:
         else:
             return data
 
-    def search_orders(self, document: str) -> Dict[str, Any]:
+    def search_orders(self, document: str, incomplete_orders: bool = False) -> Dict[str, Any]:
         """
-        Busca pedidos por documento.
+        Search orders by document.
 
         Args:
-            document: Documento do cliente
-
+            document: Customer document
+            incomplete_orders: Whether to include incomplete orders
+                Default is False (only complete orders)
         Returns:
-            Dicionário com pedidos e data atual
+            Dictionary with orders and current date
         """
-        orders_data = self.client.get_orders_by_document(document)
+        orders_data = self.client.get_orders_by_document(document, incomplete_orders=incomplete_orders)
         converted_orders = self._convert_cents(orders_data)
 
         return {
             "orders": converted_orders,
-            "brazil_time": datetime.now(pytz.timezone("America/Sao_Paulo")).strftime(
-                "%d/%m/%Y %H:%M:%S"
+            "current_time": datetime.now(self.timezone).strftime(
+                "%Y/%m/%d %H:%M:%S"
             ),
         }
 
     def get_order_details(self, order_id: str) -> Dict[str, Any]:
         """
-        Busca detalhes de um pedido.
+        Get order details.
 
         Args:
-            order_id: ID do pedido
+            order_id: Order ID
 
         Returns:
-            Dicionário com detalhes do pedido e data atual
+            Dictionary with order details and current date
         """
         order_data = self.client.get_order_by_id(order_id)
 
@@ -136,7 +154,7 @@ class OrderConcierge:
 
         return {
             "order": converted_order,
-            "brazil_time": datetime.now(pytz.timezone("America/Sao_Paulo")).strftime(
-                "%d/%m/%Y %H:%M:%S"
+            "current_time": datetime.now(self.timezone).strftime(
+                "%Y/%m/%d %H:%M:%S"
             ),
         }

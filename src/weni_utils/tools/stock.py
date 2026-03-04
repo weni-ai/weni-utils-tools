@@ -1,8 +1,8 @@
 """
-StockManager - Gerenciamento de estoque e disponibilidade
+StockManager - Stock and availability management
 
-Este módulo contém a lógica para verificar disponibilidade de produtos
-e filtrar resultados com base em estoque.
+This module contains the logic to check product availability
+and filter results based on stock.
 """
 
 from typing import Any, Dict, List, Optional, Set
@@ -10,14 +10,14 @@ from typing import Any, Dict, List, Optional, Set
 from .context import SearchContext
 
 
-class StockManager:
+class StockManager():
     """
-    Gerenciador de estoque e disponibilidade de produtos.
+    Stock and product availability manager.
 
-    Responsável por:
-    - Verificar disponibilidade via simulação de carrinho
-    - Filtrar produtos sem estoque
-    - Enriquecer produtos com informações de estoque
+    Responsible for:
+    - Checking availability via cart simulation
+    - Filtering products without stock
+    - Enriching products with stock information
 
     Example:
         manager = StockManager()
@@ -27,18 +27,18 @@ class StockManager:
     """
 
     def __init__(self):
-        """Inicializa o gerenciador de estoque"""
+        """Initialize the stock manager"""
         pass
 
     def _flatten_products_to_skus(self, products: Dict[str, Dict]) -> List[Dict]:
         """
-        Converte estrutura de produtos para lista de SKUs para simulação.
+        Convert product structure to SKU list for simulation.
 
         Args:
-            products: Dicionário de produtos estruturados
+            products: Dictionary of structured products
 
         Returns:
-            Lista de SKUs com informações necessárias para simulação
+            List of SKUs with necessary information for simulation
         """
         sku_list = []
 
@@ -68,14 +68,14 @@ class StockManager:
         self, simulation_result: Dict, products_details: List[Dict]
     ) -> List[Dict]:
         """
-        Seleciona produtos disponíveis baseado na simulação de carrinho.
+        Select available products based on cart simulation.
 
         Args:
-            simulation_result: Resultado da simulação
-            products_details: Lista de detalhes dos produtos
+            simulation_result: Simulation result
+            products_details: List of product details
 
         Returns:
-            Lista de produtos disponíveis
+            List of available products
         """
         available_ids: Set[str] = set()
 
@@ -91,38 +91,38 @@ class StockManager:
         self, client: Any, products: Dict[str, Dict], context: SearchContext  # VTEXClient
     ) -> List[Dict]:
         """
-        Verifica disponibilidade usando simulação simples de carrinho.
+        Check availability using simple cart simulation.
 
-        Usado quando não há regionalização ou sellers específicos.
+        Used when there is no regionalization or specific sellers.
 
         Args:
-            client: Instância do VTEXClient
-            products: Dicionário de produtos estruturados
-            context: Contexto da busca
+            client: VTEXClient instance
+            products: Dictionary of structured products
+            context: Search context
 
         Returns:
-            Lista de produtos com estoque disponível
+            List of products with available stock
         """
         if not products:
             return []
 
-        # Converte para lista de SKUs
+        # Convert to SKU list
         products_details = self._flatten_products_to_skus(products)
 
         if not products_details:
             return []
 
-        # Monta itens para simulação
+        # Build items for simulation
         items = []
         for product in products_details:
             sku_id = product.get("sku_id")
             seller = product.get("seller", "1")
             items.append({"id": sku_id, "quantity": context.quantity, "seller": seller})
 
-        # Executa simulação
+        # Execute simulation
         simulation_result = client.cart_simulation(items=items, country=context.country_code)
 
-        # Filtra produtos disponíveis
+        # Filter available products
         return self._select_available_products(simulation_result, products_details)
 
     def check_availability_with_sellers(
@@ -133,18 +133,18 @@ class StockManager:
         priority_categories: Optional[List[str]] = None,
     ) -> List[Dict]:
         """
-        Verifica disponibilidade usando simulação batch com sellers específicos.
+        Check availability using batch simulation with specific sellers.
 
-        Usado quando há regionalização e lista de sellers.
+        Used when there is regionalization and a list of sellers.
 
         Args:
-            client: Instância do VTEXClient
-            products: Dicionário de produtos estruturados
-            context: Contexto da busca (deve ter sellers preenchido)
-            priority_categories: Categorias que requerem lógica especial de estoque
+            client: VTEXClient instance
+            products: Dictionary of structured products
+            context: Search context (must have sellers populated)
+            priority_categories: Categories that require special stock logic
 
         Returns:
-            Lista de produtos com estoque disponível e informações do seller
+            List of products with available stock and seller information
         """
         if not products or not context.sellers:
             return self.check_availability_simple(client, products, context)
@@ -155,55 +155,88 @@ class StockManager:
             return []
 
         priority_categories = priority_categories or []
-        products_with_stock = []
 
+        # Build all SKUs with their quantities (single loop)
+        skus = []
         for product in products_details:
             sku_id = product.get("sku_id")
+            if not sku_id:
+                continue
+
             categories = product.get("categories", [])
-
-            # Verifica se é categoria prioritária
             is_priority = self._is_priority_category(categories, priority_categories)
+            quantity = max(context.quantity, 1) if is_priority else context.quantity
 
-            # Define quantidade para simulação
-            if is_priority:
-                simulation_quantity = max(context.quantity, 1000)
-            else:
-                simulation_quantity = context.quantity
+            skus.append({"sku_id": sku_id, "quantity": quantity})
 
-            # Executa simulação batch
-            simulation_result = client.batch_simulation(
-                sku_id=sku_id,
-                quantity=simulation_quantity,
-                sellers=context.sellers,
-                postal_code=context.postal_code,
-            )
+        if not skus:
+            return []
 
-            if simulation_result and simulation_result.get("quantity", 0) > 0:
-                # Enriquece produto com informações da simulação
+        # Execute batch simulation ONCE for all SKUs
+        simulation_result = client.batch_simulation(
+            skus=skus,
+            sellers=context.sellers,
+            postal_code=context.postal_code,
+        )
+
+        if not simulation_result:
+            return []
+
+        # Process results and enrich products
+        products_with_stock = []
+        for product in products_details:
+            sku_id = product.get("sku_id")
+            simulation_item = self._get_best_simulation_item(simulation_result, sku_id)
+
+            if simulation_item and simulation_item.get("availability") == "available":
                 product_with_stock = product.copy()
                 product_with_stock.update(
                     {
-                        "measurementUnit": simulation_result.get("measurementUnit", ""),
-                        "unitMultiplier": simulation_result.get("unitMultiplier", 1),
-                        "deliveryType": simulation_result.get("deliveryType", ""),
-                        "sellerId": simulation_result.get("sellerId", ""),
-                        "available_quantity": simulation_result.get("quantity", 0),
+                        "measurementUnit": simulation_item.get("measurementUnit", ""),
+                        "unitMultiplier": simulation_item.get("unitMultiplier", 1),
+                        "sellerId": simulation_item.get("seller", ""),
+                        "available_quantity": simulation_item.get("quantity", 0),
                     }
                 )
                 products_with_stock.append(product_with_stock)
 
         return products_with_stock
 
-    def _is_priority_category(self, categories: List[str], priority_categories: List[str]) -> bool:
+    def _get_best_simulation_item(
+        self, simulation_result: Optional[Dict], sku_id: str
+    ) -> Optional[Dict]:
         """
-        Verifica se produto pertence a uma categoria prioritária.
+        Extract the best simulation item for a specific SKU.
 
         Args:
-            categories: Categorias do produto
-            priority_categories: Lista de categorias prioritárias
+            simulation_result: Full simulation response
+            sku_id: SKU ID to find
 
         Returns:
-            True se pertence a categoria prioritária
+            Best simulation item or None
+        """
+        if not simulation_result:
+            return None
+
+        items = simulation_result.get("items", [])
+        sku_items = [item for item in items if item.get("id") == sku_id]
+
+        if not sku_items:
+            return None
+
+        # Return item with highest quantity
+        return max(sku_items, key=lambda x: x.get("quantity", 0))
+
+    def _is_priority_category(self, categories: List[str], priority_categories: List[str]) -> bool:
+        """
+        Check if product belongs to a priority category.
+
+        Args:
+            categories: Product categories
+            priority_categories: List of priority categories
+
+        Returns:
+            True if belongs to priority category
         """
         if not categories or not priority_categories:
             return False
@@ -218,19 +251,19 @@ class StockManager:
         self, products_structured: Dict[str, Dict], products_with_stock: List[Dict]
     ) -> Dict[str, Dict]:
         """
-        Filtra a estrutura original de produtos mantendo apenas os com estoque.
+        Filter original product structure keeping only those with stock.
 
         Args:
-            products_structured: Estrutura original de produtos
-            products_with_stock: Lista de SKUs que têm estoque
+            products_structured: Original product structure
+            products_with_stock: List of SKUs that have stock
 
         Returns:
-            Estrutura de produtos filtrada
+            Filtered product structure
         """
         if not products_with_stock:
             return {}
 
-        # Cria mapa de informações de estoque por SKU
+        # Create stock information map by SKU
         stock_info = {}
         for product in products_with_stock:
             sku_id = product.get("sku_id")
@@ -244,7 +277,7 @@ class StockManager:
                 "valueAtacado": product.get("valueAtacado"),
             }
 
-        # Filtra produtos
+        # Filter products
         filtered_products = {}
 
         for product_name, product_data in products_structured.items():
@@ -253,7 +286,7 @@ class StockManager:
             for variation in product_data.get("variations", []):
                 sku_id = variation.get("sku_id")
                 if sku_id in stock_info:
-                    # Adiciona informações de estoque à variação
+                    # Add stock information to variation
                     variation_with_stock = variation.copy()
                     variation_with_stock.update(stock_info[sku_id])
                     filtered_variations.append(variation_with_stock)
@@ -269,14 +302,14 @@ class StockManager:
         self, products: Dict[str, Dict], max_size_kb: int = 20
     ) -> Dict[str, Dict]:
         """
-        Limita o tamanho do payload para garantir que não ultrapasse o limite.
+        Limit payload size to ensure it doesn't exceed the limit.
 
         Args:
-            products: Dicionário de produtos
-            max_size_kb: Tamanho máximo em KB
+            products: Product dictionary
+            max_size_kb: Maximum size in KB
 
         Returns:
-            Dicionário de produtos limitado
+            Limited product dictionary
         """
         import json
 

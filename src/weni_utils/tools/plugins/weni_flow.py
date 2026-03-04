@@ -1,8 +1,8 @@
 """
-WeniFlowTrigger Plugin - Disparo de Fluxos Weni
+WeniFlowTrigger Plugin - Weni Flow Triggering
 
-Plugin para disparar fluxos na plataforma Weni durante a busca de produtos.
-Útil para tracking, analytics ou ações customizadas.
+Plugin for triggering flows on the Weni platform during product search.
+Useful for tracking, analytics or custom actions.
 """
 
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -18,12 +18,12 @@ if TYPE_CHECKING:
 
 class WeniFlowTrigger(PluginBase):
     """
-    Plugin para disparar fluxos Weni.
+    Plugin for triggering Weni flows.
 
-    Funcionalidades:
-    - Dispara fluxos após busca de produtos
-    - Passa parâmetros customizados para o fluxo
-    - Controla execução única por sessão
+    Features:
+    - Triggers flows after product search
+    - Passes custom parameters to the flow
+    - Controls single execution per session
 
     Example:
         concierge = ProductConcierge(
@@ -31,16 +31,16 @@ class WeniFlowTrigger(PluginBase):
             store_url="...",
             plugins=[
                 WeniFlowTrigger(
-                    flow_uuid="uuid-do-fluxo",
+                    flow_uuid="flow-uuid",
                     trigger_once=True
                 )
             ]
         )
 
         result = concierge.search(
-            product_name="furadeira",
+            product_name="drill",
             credentials={
-                "API_TOKEN_WENI": "seu-token"
+                "API_TOKEN_WENI": "your-token"
             },
             contact_info={
                 "urn": "whatsapp:5511999999999"
@@ -59,14 +59,14 @@ class WeniFlowTrigger(PluginBase):
         timeout: int = 10,
     ):
         """
-        Inicializa o plugin de fluxo Weni.
+        Initialize the Weni flow plugin.
 
         Args:
-            flow_uuid: UUID do fluxo a disparar (pode vir das credentials)
-            weni_api_url: URL da API de fluxos
-            trigger_once: Se True, dispara apenas uma vez por sessão
-            flow_params: Parâmetros extras para passar ao fluxo
-            timeout: Timeout para requisições
+            flow_uuid: UUID of the flow to trigger (can come from credentials)
+            weni_api_url: Flows API URL
+            trigger_once: If True, triggers only once per session
+            flow_params: Extra parameters to pass to the flow
+            timeout: Request timeout
         """
         self.flow_uuid = flow_uuid
         self.weni_api_url = weni_api_url
@@ -77,13 +77,13 @@ class WeniFlowTrigger(PluginBase):
 
     def finalize_result(self, result: Dict[str, Any], context: "SearchContext") -> Dict[str, Any]:
         """
-        Dispara fluxo após finalizar resultado.
+        Trigger flow after finalizing result.
         """
-        # Verifica se já foi disparado (se trigger_once=True)
+        # Check if already triggered (if trigger_once=True)
         if self.trigger_once and self._triggered:
             return result
 
-        # Obtém credenciais
+        # Get credentials
         api_token = context.get_credential("API_TOKEN_WENI")
         flow_uuid = self.flow_uuid or context.get_credential("EVENT_ID_CONCIERGE")
         contact_urn = context.get_contact("urn")
@@ -111,16 +111,16 @@ class WeniFlowTrigger(PluginBase):
         params: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
-        Dispara um fluxo Weni.
+        Trigger a Weni flow.
 
         Args:
-            api_token: Token de autenticação
-            flow_uuid: UUID do fluxo
-            contact_urn: URN do contato
-            params: Parâmetros para o fluxo
+            api_token: Authentication token
+            flow_uuid: Flow UUID
+            contact_urn: Contact URN
+            params: Parameters for the flow
 
         Returns:
-            True se disparado com sucesso
+            True if triggered successfully
         """
         headers = {"Authorization": f"Token {api_token}", "Content-Type": "application/json"}
 
@@ -132,16 +132,16 @@ class WeniFlowTrigger(PluginBase):
             )
 
             if response.status_code == 200:
-                print(f"WeniFlow: Fluxo {flow_uuid} disparado com sucesso")
+                print(f"WeniFlow: Flow {flow_uuid} triggered successfully")
                 return True
             else:
-                print(f"WeniFlow: Falha ao disparar fluxo: {response.status_code}")
+                print(f"WeniFlow: Failed to trigger flow: {response.status_code}")
                 return False
 
         except Exception as e:
-            print(f"WeniFlow: Erro ao disparar fluxo: {e}")
+            print(f"WeniFlow: Error triggering flow: {e}")
             return False
 
     def reset(self) -> None:
-        """Reseta o estado do plugin para permitir novo disparo."""
+        """Reset plugin state to allow new trigger."""
         self._triggered = False

@@ -1,8 +1,8 @@
 """
 CAPI Plugin - Meta Conversions API
 
-Plugin para enviar eventos de conversão para a Meta (Facebook/Instagram).
-Integra com a API de conversões da Weni.
+Plugin for sending conversion events to Meta (Facebook/Instagram).
+Integrates with Weni's conversions API.
 """
 
 from typing import TYPE_CHECKING, Any, Dict
@@ -18,16 +18,16 @@ if TYPE_CHECKING:
 
 class CAPI(PluginBase):
     """
-    Plugin de Conversions API (CAPI) do Meta.
+    Meta Conversions API (CAPI) plugin.
 
-    Funcionalidades:
-    - Envia eventos de lead após busca de produtos
-    - Envia eventos de purchase após compra
-    - Integra com a API de conversões da Weni
+    Features:
+    - Sends lead events after product search
+    - Sends purchase events after purchase
+    - Integrates with Weni's conversions API
 
-    Tipos de eventos suportados:
-    - lead: Usuário demonstrou interesse (buscou produtos)
-    - purchase: Usuário realizou compra
+    Supported event types:
+    - lead: User showed interest (searched products)
+    - purchase: User made a purchase
 
     Example:
         concierge = ProductConcierge(
@@ -42,10 +42,10 @@ class CAPI(PluginBase):
         )
 
         result = concierge.search(
-            product_name="camiseta",
+            product_name="t-shirt",
             contact_info={
                 "urn": "whatsapp:5511999999999",
-                "channel_uuid": "uuid-do-canal"
+                "channel_uuid": "channel-uuid"
             }
         )
     """
@@ -63,17 +63,17 @@ class CAPI(PluginBase):
         timeout: int = 10,
     ):
         """
-        Inicializa o plugin CAPI.
+        Initialize the CAPI plugin.
 
         Args:
-            event_type: Tipo de evento a enviar (lead ou purchase)
-            auto_send: Se True, envia evento automaticamente após busca
-            weni_capi_url: URL da API de conversões da Weni
-            only_whatsapp: Se True, só envia para contatos WhatsApp
-            timeout: Timeout para requisições
+            event_type: Event type to send (lead or purchase)
+            auto_send: If True, sends event automatically after search
+            weni_capi_url: Weni's conversions API URL
+            only_whatsapp: If True, only sends for WhatsApp contacts
+            timeout: Request timeout
         """
         if event_type not in self.VALID_EVENT_TYPES:
-            raise ValueError(f"event_type deve ser um de: {self.VALID_EVENT_TYPES}")
+            raise ValueError(f"event_type must be one of: {self.VALID_EVENT_TYPES}")
 
         self.event_type = event_type
         self.auto_send = auto_send
@@ -84,12 +84,12 @@ class CAPI(PluginBase):
 
     def finalize_result(self, result: Dict[str, Any], context: "SearchContext") -> Dict[str, Any]:
         """
-        Envia evento CAPI após finalizar resultado (se auto_send=True).
+        Send CAPI event after finalizing result (if auto_send=True).
         """
         if not self.auto_send:
             return result
 
-        # Evita enviar duplicado
+        # Avoid duplicate send
         if self._sent:
             return result
 
@@ -97,7 +97,7 @@ class CAPI(PluginBase):
         channel_uuid = context.get_contact("channel_uuid")
         auth_token = context.credentials.get("auth_token") or context.get_contact("auth_token")
 
-        # Verifica se é WhatsApp (se configurado para só WhatsApp)
+        # Check if it's WhatsApp (if configured for WhatsApp only)
         if self.only_whatsapp and contact_urn and "whatsapp" not in contact_urn.lower():
             return result
 
@@ -119,23 +119,23 @@ class CAPI(PluginBase):
         self, auth_token: str, channel_uuid: str, contact_urn: str, event_type: str
     ) -> bool:
         """
-        Envia evento de conversão para a Meta.
+        Send conversion event to Meta.
 
         Args:
-            auth_token: Token de autenticação
-            channel_uuid: UUID do canal
-            contact_urn: URN do contato
-            event_type: Tipo de evento (lead ou purchase)
+            auth_token: Authentication token
+            channel_uuid: Channel UUID
+            contact_urn: Contact URN
+            event_type: Event type (lead or purchase)
 
         Returns:
-            True se enviado com sucesso
+            True if sent successfully
         """
         if not all([auth_token, channel_uuid, contact_urn]):
-            print("CAPI: Faltam parâmetros obrigatórios")
+            print("CAPI: Missing required parameters")
             return False
 
         if event_type not in self.VALID_EVENT_TYPES:
-            print(f"CAPI: Tipo de evento inválido: {event_type}")
+            print(f"CAPI: Invalid event type: {event_type}")
             return False
 
         headers = {"Authorization": f"Bearer {auth_token}", "Content-Type": "application/json"}
@@ -152,27 +152,27 @@ class CAPI(PluginBase):
             )
 
             if response.status_code == 200:
-                print(f"CAPI: Evento '{event_type}' enviado com sucesso")
+                print(f"CAPI: Event '{event_type}' sent successfully")
                 return True
             else:
-                print(f"CAPI: Falha ao enviar evento: {response.status_code}")
+                print(f"CAPI: Failed to send event: {response.status_code}")
                 return False
 
         except Exception as e:
-            print(f"CAPI: Erro ao enviar evento: {e}")
+            print(f"CAPI: Error sending event: {e}")
             return False
 
     def send_purchase_event(self, context: "SearchContext") -> bool:
         """
-        Envia evento de compra manualmente.
+        Send purchase event manually.
 
-        Útil para chamar após confirmação de compra.
+        Useful to call after purchase confirmation.
 
         Args:
-            context: Contexto com informações do contato
+            context: Context with contact information
 
         Returns:
-            True se enviado com sucesso
+            True if sent successfully
         """
         contact_urn = context.get_contact("urn")
         channel_uuid = context.get_contact("channel_uuid")
@@ -186,5 +186,5 @@ class CAPI(PluginBase):
         )
 
     def reset(self) -> None:
-        """Reseta o estado do plugin para permitir novo envio."""
+        """Reset plugin state to allow new send."""
         self._sent = False

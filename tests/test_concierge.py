@@ -4,9 +4,11 @@ Tests for ProductConcierge
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+
 from weni_utils.tools import ProductConcierge
 from weni_utils.tools.context import SearchContext
 from weni_utils.tools.plugins import PluginBase
+
 from dotenv import load_dotenv
 import os
 
@@ -57,6 +59,7 @@ class TestProductConcierge:
         
         print(search_result)
 
+
     def test_search_process_products(self):
         """Test search: intelligent_search (client) + process_products (concierge)."""
         concierge = ProductConcierge(
@@ -71,6 +74,35 @@ class TestProductConcierge:
         assert formatted_result is not None
         assert isinstance(formatted_result, dict)
         assert len(formatted_result) > 0
+
+    
+    def test_search_check_availability_simple(self):
+        """Test search: check_availability_simple (concierge)."""
+        concierge = ProductConcierge(
+            base_url=os.getenv("VTEX_BASE_URL"),
+            store_url=os.getenv("VTEX_STORE_URL")
+        )
+
+        postal_code = "57022-230"
+        country_code = "BRA"
+        trade_policy = 1
+
+        context = SearchContext(postal_code=postal_code,
+                                country_code=country_code,
+                                trade_policy=trade_policy,
+                                product_name="sofá")
+
+        region_id, error, sellers = concierge.get_region(postal_code=context.postal_code, trade_policy=context.trade_policy, country_code=context.country_code)
+        raw_result = concierge.intelligent_search(product_name=context.product_name, region_id=region_id)
+        formatted_result = concierge.process_products(raw_result, extra_product_fields=["clusterHighlights", "items.0.images", "imagemteste"], remove_specifications=["sellerId"])
+        print(f"Formatted Result: {formatted_result}")
+        if sellers:
+            context.sellers = sellers
+        
+        product_with_stock = concierge.check_availability_with_sellers(client=concierge, products=formatted_result, context=context)
+
+
+        print(product_with_stock)
 
 
 class TestProductConciergePluginFlow:

@@ -1,28 +1,28 @@
 """
-VTEXClient - Cliente para APIs da VTEX
+VTEXClient - Client for VTEX APIs
 
-Este módulo contém toda a lógica de comunicação com as APIs da VTEX,
-extraída e consolidada dos agentes existentes.
+This module contains all communication logic with VTEX APIs,
+extracted and consolidated from existing agents.
 """
 
 import json
 from dataclasses import dataclass
-from pickletools import int4
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple
 
 import requests
+from weni.context import Context
 
 from .proxy import ProxyRequest
 from .utils import Utils
-from weni.context import Context
+
 
 @dataclass
 class ProductVariation:
-    """Representa uma variação (SKU) de um produto"""
+    """Represents a product variation (SKU)"""
 
     sku_id: str
     sku_name: str
-    variations: str  # Formato: "[Cor: Branco, Tamanho: M]"
+    variations: str  # Format: "[Color: White, Size: M]"
     price: Optional[float] = None
     spot_price: Optional[float] = None
     list_price: Optional[float] = None
@@ -35,7 +35,7 @@ class ProductVariation:
 
 @dataclass
 class Product:
-    """Representa um produto com suas variações"""
+    """Represents a product with its variations"""
 
     name: str
     description: str
@@ -49,21 +49,21 @@ class Product:
 
 class VTEXClient(ProxyRequest, Utils):
     """
-    Cliente para comunicação com APIs da VTEX.
+    Client for communication with VTEX APIs.
 
-    Centraliza todas as chamadas de API para:
-    - Intelligent Search (busca de produtos)
-    - Cart Simulation (verificação de estoque)
-    - Regions (regionalização)
-    - SKU Details (detalhes do produto)
+    Centralizes all API calls for:
+    - Intelligent Search (product search)
+    - Cart Simulation (stock verification)
+    - Regions (regionalization)
+    - SKU Details (product details)
 
     Example:
         client = VTEXClient(
-            base_url="https://loja.vtexcommercestable.com.br",
-            store_url="https://loja.com.br"
+            base_url="https://store.vtexcommercestable.com.br",
+            store_url="https://store.com.br"
         )
 
-        products = client.intelligent_search("furadeira")
+        products = client.intelligent_search("drill")
     """
 
     def __init__(
@@ -75,23 +75,26 @@ class VTEXClient(ProxyRequest, Utils):
         timeout: int = 30,
     ):
         """
-        Inicializa o cliente VTEX.
+        Initialize the VTEX client.
 
         Args:
-            base_url: URL base da API VTEX (ex: https://loja.vtexcommercestable.com.br)
-            store_url: URL da loja (ex: https://loja.com.br)
-            vtex_app_key: App Key para APIs autenticadas (opcional)
-            vtex_app_token: App Token para APIs autenticadas (opcional)
-            timeout: Timeout para requisições em segundos
+            base_url: VTEX API base URL (e.g., https://store.vtexcommercestable.com.br)
+            store_url: Store URL (e.g., https://store.com.br)
+            vtex_app_key: App Key for authenticated APIs (optional)
+            vtex_app_token: App Token for authenticated APIs (optional)
+            timeout: Request timeout in seconds
         """
         self.base_url = base_url.rstrip("/")
         self.store_url = store_url.rstrip("/")
+        if not self._validate_base_url_and_store_url():
+            raise ValueError("Base URL or store URL is invalid")
+
         self.vtex_app_key = vtex_app_key
         self.vtex_app_token = vtex_app_token
         self.timeout = timeout
 
     def _get_auth_headers(self) -> Dict[str, str]:
-        """Retorna headers de autenticação se disponíveis"""
+        """Return authentication headers if available"""
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -103,172 +106,18 @@ class VTEXClient(ProxyRequest, Utils):
 
         return headers
 
-    def _clean_image_url(self, img_url: str) -> str:
-        """Remove query parameters da URL da imagem"""
-        if not img_url:
-            return ""
+    def _validate_base_url_and_store_url(self) -> bool:
+        """Validate if the base URL and store URL are valid"""
+        if not self.base_url or not self.store_url:
+            return False
 
-        # Remove query parameters
-        if "?" in img_url:
-            img_url = img_url.split("?")[0]
+        if not self.base_url.startswith("https://") or not self.store_url.startswith("https://"):
+            return False
 
-        # Remove fragment identifier
-        if "#" in img_url:
-            img_url = img_url.split("#")[0]
+        if not self.base_url.endswith((".vtexcommercestable.com.br", "myvtex.com")):
+            return False
 
-        return img_url
-
-    def _format_variations(self, variation_items: List[Dict]) -> str:
-        """
-        Converte variações para formato compacto.
-
-        Args:
-            variation_items: Lista de variações do item
-
-        Returns:
-            String no formato "[Cor: Branco, Tamanho: M]"
-        """
-        compact_variations = []
-        for var in variation_items:
-            name = var.get("name", "")
-            values = var.get("values", [])
-            if name and values:
-                value = values[0] if values else ""
-                compact_variations.append(f"{name}: {value}")
-
-        return f"[{', '.join(compact_variations)}]" if compact_variations else "[]"
-
-    def _format_specifications(self, spec_groups: List[Dict], max_groups: int = 3) -> List[Dict]:
-        """
-        Formata grupos de especificações de forma simplificada.
-
-        Args:
-            spec_groups: Grupos de especificação do produto
-            max_groups: Número máximo de grupos a incluir
-
-        Returns:
-            Lista simplificada de especificações
-        """
-        simplified_specs = []
-
-        # Procura primeiro pelo grupo "allSpecifications"
-        all_specs_group = None
-        for group in spec_groups:
-            if group.get("name") == "allSpecifications" and group.get("specifications"):
-                all_specs_group = group
-                break
-
-        if all_specs_group:
-            specs = all_specs_group["specifications"]
-            compact_specs = []
-            for spec in specs:
-                name = spec.get("name", "")
-                values = spec.get("values", [])
-                if name and values:
-                    value = values[0] if values else ""
-                    compact_specs.append(f"{name}: {value}")
-
-            simplified_specs.append(
-                {
-                    "name": "allSpecifications",
-                    "specifications": f"[{', '.join(compact_specs)}]" if compact_specs else "[]",
-                }
-            )
-        else:
-            # Fallback: usa os primeiros grupos
-            for group in spec_groups[:max_groups]:
-                if group.get("specifications"):
-                    limited_specs = group["specifications"][:5]
-                    compact_specs = []
-                    for spec in limited_specs:
-                        name = spec.get("name", "")
-                        values = spec.get("values", [])
-                        if name and values:
-                            value = values[0] if values else ""
-                            compact_specs.append(f"{name}: {value}")
-
-                    simplified_specs.append(
-                        {
-                            "name": group.get("name", ""),
-                            "specifications": (
-                                f"[{', '.join(compact_specs)}]" if compact_specs else "[]"
-                            ),
-                        }
-                    )
-
-        return simplified_specs
-
-    def _extract_prices_from_seller(self, seller_data: Dict) -> Dict[str, Optional[float]]:
-        """
-        Extrai preços de um seller, incluindo PIX e cartão.
-
-        Args:
-            seller_data: Dados do seller
-
-        Returns:
-            Dicionário com preços extraídos
-        """
-        commercial_offer = seller_data.get("commertialOffer", {})
-        installments = commercial_offer.get("Installments", [])
-
-        prices = {
-            "price": commercial_offer.get("Price"),
-            "spot_price": commercial_offer.get("spotPrice"),
-            "list_price": commercial_offer.get("ListPrice"),
-            "pix_price": None,
-            "credit_card_price": None,
-        }
-
-        # Busca preço do PIX
-        for installment in installments:
-            if installment.get("PaymentSystemName") == "Pix":
-                prices["pix_price"] = installment.get("Value")
-                break
-
-        # Busca preço do cartão de crédito à vista
-        for installment in installments:
-            if (
-                installment.get("PaymentSystemName") == "Visa"
-                and installment.get("NumberOfInstallments") == 1
-            ):
-                prices["credit_card_price"] = installment.get("Value")
-                break
-
-        return prices
-
-    def _select_best_seller(self, sellers: List[Dict]) -> Tuple[Optional[Dict], Optional[str]]:
-        """
-        Seleciona o melhor seller para um item.
-
-        Prioridade:
-        1. Seller padrão com estoque
-        2. Primeiro seller com estoque
-        3. Primeiro seller disponível
-
-        Args:
-            sellers: Lista de sellers do item
-
-        Returns:
-            Tuple (seller_data, seller_id)
-        """
-        if not sellers:
-            return None, None
-
-        # Tenta seller padrão com estoque
-        for seller in sellers:
-            if (
-                seller.get("sellerDefault", False)
-                and seller.get("commertialOffer", {}).get("AvailableQuantity", 0) > 0
-            ):
-                return seller, seller.get("sellerId")
-
-        # Tenta primeiro com estoque
-        for seller in sellers:
-            if seller.get("commertialOffer", {}).get("AvailableQuantity", 0) > 0:
-                return seller, seller.get("sellerId")
-
-        # Fallback: primeiro disponível
-        return sellers[0], sellers[0].get("sellerId")
+        return True
 
     def intelligent_search(
         self,
@@ -281,24 +130,24 @@ class VTEXClient(ProxyRequest, Utils):
         allow_redirect: bool = False,
     ) -> List[Dict]:
         """
-        Busca produtos usando a API Intelligent Search da VTEX.
-        
-        Retorna apenas os dados brutos da API, sem processamento.
-        A lógica de formatação, filtragem e limitação deve ser feita pelo agente.
+        Search products using VTEX Intelligent Search API.
+
+        Returns only raw data from the API, without processing.
+        Formatting, filtering, and limiting logic should be done by the agent.
 
         Args:
-            product_name: Nome do produto a buscar
-            brand_name: Marca do produto (opcional)
-            region_id: ID da região para regionalização (opcional)
-            hide_unavailable: Se deve ocultar produtos indisponíveis
-            trade_policy_id: Trade policy / sales channel ID (opcional)
-            cluster_id: Filter by collection ID (opcional)
-            allow_redirect: Se deve permitir redirecionamentos (opcional)
+            product_name: Product name to search
+            brand_name: Product brand (optional)
+            region_id: Region ID for regionalization (optional)
+            hide_unavailable: Whether to hide unavailable products
+            trade_policy_id: Trade policy / sales channel ID (optional)
+            cluster_id: Filter by collection ID (optional)
+            allow_redirect: Whether to allow redirects (optional)
 
         Returns:
-            Lista de produtos brutos da API VTEX
+            List of raw products from VTEX API
         """
-        # Constrói a URL com ou sem regionalização
+        # Build URL with or without regionalization
         query = f"{product_name} {brand_name}".strip()
 
         # Build path segments
@@ -328,30 +177,36 @@ class VTEXClient(ProxyRequest, Utils):
             return data.get("products", [])
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro na busca inteligente: {e}")
+            print(f"ERROR: Intelligent search error: {e}")
             return []
         except json.JSONDecodeError as e:
-            print(f"ERROR: Erro ao processar JSON: {e}")
+            print(f"ERROR: JSON processing error: {e}")
             return []
 
     def cart_simulation(
-        self, items: List[Dict], country: str = "BRA", postal_code: Optional[str] = None
+        self,
+        items: List[Dict],
+        country: str = "BRA",
+        postal_code: Optional[str] = None,
+        sales_channel: Optional[int] = None,
     ) -> Dict:
         """
-        Realiza simulação de carrinho para verificar disponibilidade.
+        Perform cart simulation to check availability.
 
         Args:
-            items: Lista de itens [{id, quantity, seller}]
-            country: Código do país
-            postal_code: CEP (opcional)
+            items: List of items [{id, quantity, seller}]
+            country: Country code
+            postal_code: Postal code (optional)
+            sales_channel: Sales channel ID (optional)
 
         Returns:
-            Resposta da simulação
+            Simulation response
         """
         url = f"{self.base_url}/api/checkout/pub/orderForms/simulation"
+        if sales_channel is not None:
+            url += f"?sc={sales_channel}"
 
-        payload = {"items": items, "country": country}
-
+        payload: Dict = {"items": items, "country": country}
         if postal_code:
             payload["postalCode"] = postal_code
 
@@ -361,77 +216,89 @@ class VTEXClient(ProxyRequest, Utils):
             return response.json()
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro na simulação de carrinho: {e}")
+            print(f"ERROR: Cart simulation error: {e}")
             return {"items": []}
+
+    def _build_batch_items(
+        self,
+        skus: List[Dict[str, int]],
+        sellers: List[str],
+        max_quantity_per_seller: int = 8000,
+        max_total_quantity: int = 24000,
+    ) -> List[Dict]:
+        """
+        Build items list for batch simulation (SKUs × sellers cross-product).
+
+        Args:
+            skus: List of SKUs with quantities
+            sellers: List of sellers
+            max_quantity_per_seller: Maximum quantity per seller
+            max_total_quantity: Maximum total quantity
+
+        Returns:
+            List of items for simulation
+        """
+        num_sellers = len(sellers)
+        items = []
+
+        for sku in skus:
+            sku_id = sku.get("sku_id")
+            quantity = int(sku.get("quantity", 1))
+
+            if not sku_id:
+                continue
+
+            total_quantity = min(quantity * num_sellers, max_total_quantity)
+            quantity_per_seller = min(total_quantity // num_sellers, max_quantity_per_seller)
+
+            items.extend(
+                {"id": sku_id, "quantity": quantity_per_seller, "seller": seller}
+                for seller in sellers
+            )
+
+        return items
 
     def batch_simulation(
         self,
-        sku_id: str,
-        quantity: int,
+        skus: List[Dict[str, int]],
         sellers: List[str],
         postal_code: str,
         max_quantity_per_seller: int = 8000,
         max_total_quantity: int = 24000,
     ) -> Optional[Dict]:
         """
-        Simula um SKU específico com múltiplos sellers (usado para regionalização).
+        Simulate multiple SKUs with multiple sellers (used for regionalization).
 
         Args:
-            sku_id: ID do SKU
-            quantity: Quantidade desejada
-            sellers: Lista de sellers
-            postal_code: CEP
-            max_quantity_per_seller: Quantidade máxima por seller
-            max_total_quantity: Quantidade máxima total
+            skus: List of SKUs with quantities, e.g. [{"sku_id": "123", "quantity": 2}, ...]
+            sellers: List of sellers
+            postal_code: Postal code
+            max_quantity_per_seller: Maximum quantity per seller
+            max_total_quantity: Maximum total quantity
 
         Returns:
-            Melhor resultado da simulação ou None
+            Simulation result or None
         """
-        quantity = int(quantity)
-
-        # Calcula quantidade por seller
-        if len(sellers) > 1:
-            total_quantity = min(quantity * len(sellers), max_total_quantity)
-            quantity_per_seller = min(total_quantity // len(sellers), max_quantity_per_seller)
-        else:
-            quantity_per_seller = min(quantity, max_quantity_per_seller)
-
-        items = [
-            {"id": sku_id, "quantity": quantity_per_seller, "seller": seller} for seller in sellers
-        ]
-
-        url = f"{self.base_url}/_v/api/simulations-batches?sc=1&RnbBehavior=1"
-        payload = {"items": items, "country": "BRA", "postalCode": postal_code}
-
-        try:
-            response = requests.post(url, json=payload, timeout=self.timeout)
-            response.raise_for_status()
-            simulation_data = response.json()
-
-            data_content = simulation_data.get("data", {})
-            if not data_content:
-                return None
-
-            sku_simulations = data_content.get(sku_id, [])
-            if not sku_simulations:
-                return None
-
-            # Retorna a simulação com maior quantidade
-            return max(sku_simulations, key=lambda x: x.get("quantity", 0))
-
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro na simulação batch: {e}")
+        if not sellers or not skus:
             return None
+
+        items = self._build_batch_items(skus, sellers, max_quantity_per_seller, max_total_quantity)
+        if not items:
+            return None
+
+        result = self.cart_simulation(items, postal_code=postal_code, sales_channel=1)
+        return result if result.get("items") else None
 
     def get_region(
         self, postal_code: str, trade_policy: int, country_code: str
     ) -> Tuple[Optional[str], Optional[str], List[str]]:
         """
-        Consulta a API de regionalização para obter região e sellers.
+        Query the regionalization API to get region and sellers.
 
         Args:
-            postal_code: CEP
-
+            postal_code: Postal code
+            trade_policy: Trade policy / sales channel ID
+            country_code: Country code
         Returns:
             Tuple (region_id, error_message, sellers)
         """
@@ -445,7 +312,7 @@ class VTEXClient(ProxyRequest, Utils):
             if not regions_data:
                 return (
                     None,
-                    "Não atendemos a sua região. Compre presencialmente em nossas lojas.",
+                    "We don't serve your region.",
                     [],
                 )
 
@@ -455,7 +322,7 @@ class VTEXClient(ProxyRequest, Utils):
             if not sellers:
                 return (
                     None,
-                    "Não atendemos a sua região. Compre presencialmente em nossas lojas.",
+                    "We don't serve your region.",
                     [],
                 )
 
@@ -465,19 +332,19 @@ class VTEXClient(ProxyRequest, Utils):
             return region_id, None, seller_ids
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro na regionalização: {e}")
-            return None, f"Erro ao consultar regionalização: {e}", []
+            print(f"ERROR: Regionalization error: {e}")
+            return None, f"Error querying regionalization: {e}", []
 
     def get_sku_details(self, sku_id: str) -> Dict:
         """
-        Busca detalhes de um SKU (dimensões, peso, etc).
-        Requer credenciais VTEX.
+        Get SKU details (dimensions, weight, etc).
+        Requires VTEX credentials.
 
         Args:
-            sku_id: ID do SKU
+            sku_id: SKU ID
 
         Returns:
-            Dicionário com detalhes do SKU
+            Dictionary with SKU details
         """
         default_response = {
             "PackagedHeight": None,
@@ -521,13 +388,13 @@ class VTEXClient(ProxyRequest, Utils):
 
     def get_product_by_sku(self, sku_id: str) -> Optional[Dict]:
         """
-        Busca um produto específico pelo SKU ID.
+        Search for a specific product by SKU ID.
 
         Args:
-            sku_id: ID do SKU
+            sku_id: SKU ID
 
         Returns:
-            Dados do produto ou None
+            Product data or None
         """
         search_url = f"{self.base_url}/api/io/_v/api/intelligent-search/product_search/?query=sku.id:{sku_id}"
 
@@ -543,62 +410,98 @@ class VTEXClient(ProxyRequest, Utils):
             return products[0]
 
         except Exception as e:
-            print(f"ERROR: Erro ao buscar SKU {sku_id}: {e}")
+            print(f"ERROR: Error searching SKU {sku_id}: {e}")
             return None
 
-    def get_orders_by_document(self, document: str) -> Dict:
+    def _fetch_orders(
+        self, document: str, include_incomplete: bool = False
+    ) -> Tuple[Optional[Dict], Optional[str]]:
         """
-        Busca pedidos por documento.
+        Fetch orders from OMS API.
 
         Args:
-            document: Documento do cliente
+            document: Customer document
+            include_incomplete: Whether to include incomplete orders
 
         Returns:
-            Dicionário com lista de pedidos
+            Tuple of (orders_data, error_message)
         """
-        if not document:
-            return {"list": []}
-
-        # Busca pedidos completos
         url = f"{self.base_url}/api/oms/pvt/orders?q={document}"
+        if include_incomplete:
+            url += "&incompleteOrders=true"
 
         try:
             response = requests.get(url, headers=self._get_auth_headers(), timeout=self.timeout)
             response.raise_for_status()
-            orders_data = response.json()
+            return response.json(), None
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro ao buscar pedidos: {e}")
-            orders_data = {"list": []}
+            return None, str(e)
 
-        # Busca pedidos incompletos
-        url_incomplete = f"{self.base_url}/api/oms/pvt/orders?q={document}&incompleteOrders=true"
+    def get_orders_by_document(self, document: str, include_incomplete: bool = False) -> Dict:
+        """
+        Search orders by document.
 
-        try:
-            response_incomplete = requests.get(
-                url_incomplete, headers=self._get_auth_headers(), timeout=self.timeout
-            )
-            response_incomplete.raise_for_status()
-            orders_data_incomplete = response_incomplete.json()
+        Args:
+            document: Customer document
+            include_incomplete: Whether to also fetch incomplete orders
 
-            if orders_data_incomplete and "list" in orders_data_incomplete:
-                if "list" not in orders_data:
-                    orders_data["list"] = []
-                orders_data["list"].extend(orders_data_incomplete["list"])
+        Returns:
+            Dictionary with orders list
+        """
+        if not document:
+            return {"error": "Document is required", "list": []}
 
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro ao buscar pedidos incompletos: {e}")
+        # Fetch complete orders
+        orders_data, error = self._fetch_orders(document)
+        if error:
+            print(f"ERROR: Error searching orders: {error}")
+            return {"error": f"Error searching orders: {error}", "list": []}
+
+        if not include_incomplete:
+            return orders_data
+
+        # Fetch incomplete orders and merge
+        incomplete_data, error = self._fetch_orders(document, include_incomplete=True)
+        if error:
+            print(f"ERROR: Error searching incomplete orders: {error}")
+            return orders_data
+
+        # Merge avoiding duplicates by order ID
+        existing_ids = {order.get("orderId") for order in orders_data.get("list", [])}
+        new_orders = [
+            order
+            for order in incomplete_data.get("list", [])
+            if order.get("orderId") not in existing_ids
+        ]
+        orders_data.setdefault("list", []).extend(new_orders)
 
         return orders_data
 
+    def create_order_form(self, sales_channel: int = 1) -> Optional[Dict]:
+        """
+        Create an order form.
+        """
+        url = f"{self.base_url}/api/checkout/pub/orderForms?sc={sales_channel}"
+        try:
+            response = requests.post(url, headers=self._get_auth_headers(), timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Error creating order form: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"ERROR: JSON processing error: {e}")
+            return None
+
     def get_order_by_id(self, order_id: str) -> Optional[Dict]:
         """
-        Busca pedido por ID.
+        Search order by ID.
 
         Args:
-            order_id: ID do pedido
+            order_id: Order ID
 
         Returns:
-            Dicionário com dados do pedido ou None
+            Dictionary with order data or None
         """
         if not order_id:
             return None
@@ -610,7 +513,7 @@ class VTEXClient(ProxyRequest, Utils):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Erro ao buscar pedido {order_id}: {e}")
+            print(f"ERROR: Error searching order {order_id}: {e}")
             return None
 
     def process_products(
@@ -697,18 +600,20 @@ class VTEXClient(ProxyRequest, Utils):
             seller_data, seller_id = self._select_best_seller(item.get("sellers", []))
             prices = self._extract_prices_from_seller(seller_data) if seller_data else {}
 
-            variations.append({
-                "sku_id": sku_id,
-                "sku_name": item.get("nameComplete"),
-                "variations": self._format_variations(item.get("variations", [])),
-                "price": prices.get("price"),
-                "spotPrice": prices.get("spot_price"),
-                "listPrice": prices.get("list_price"),
-                "pixPrice": prices.get("pix_price"),
-                "creditCardPrice": prices.get("credit_card_price"),
-                "imageUrl": self._get_first_image(item.get("images", [])),
-                "sellerId": seller_id,
-            })
+            variations.append(
+                {
+                    "sku_id": sku_id,
+                    "sku_name": item.get("nameComplete"),
+                    "variations": self._format_variations(item.get("variations", [])),
+                    "price": prices.get("price"),
+                    "spotPrice": prices.get("spot_price"),
+                    "listPrice": prices.get("list_price"),
+                    "pixPrice": prices.get("pix_price"),
+                    "creditCardPrice": prices.get("credit_card_price"),
+                    "imageUrl": self._get_first_image(item.get("images", [])),
+                    "sellerId": seller_id,
+                }
+            )
 
         return variations
 
@@ -783,6 +688,7 @@ class VTEXClient(ProxyRequest, Utils):
                 return None
 
         return current
+
 
 class OrderDataProxy(Context):
     """
