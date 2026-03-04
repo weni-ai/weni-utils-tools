@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Modular tools library for AI agents on the Weni platform"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     {name = "Weni AI", email = "dev@weni.ai"}
 ]
@@ -32,7 +32,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -88,7 +87,7 @@ include = ["weni_utils*"]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py310", "py311", "py312"]
 
 [tool.isort]
 profile = "black"
@@ -97,7 +96,7 @@ known_first_party = ["weni_utils"]
 skip_gitignore = true
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -114,7 +113,7 @@ ignore_errors = true
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py310"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

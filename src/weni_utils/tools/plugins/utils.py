@@ -8,8 +8,8 @@ These functions use the plugins internally.
 from typing import Any, Dict, List, Optional
 
 from ..client import VTEXClient
-from .cart_simulation import CartSimulation
 from .capi import CAPI
+from .cart_simulation import CartSimulation
 from .weni_flow import WeniFlowTrigger
 
 
@@ -206,7 +206,10 @@ def send_capi_event(
     """
     capi = CAPI(event_type=event_type, auto_send=False, weni_capi_url=api_url, timeout=timeout)
     return capi.send_event(
-        auth_token=auth_token, channel_uuid=channel_uuid, contact_urn=contact_urn, event_type=event_type
+        auth_token=auth_token,
+        channel_uuid=channel_uuid,
+        contact_urn=contact_urn,
+        event_type=event_type,
     )
 
 
@@ -318,5 +321,3 @@ def get_sellers_by_region(
         base_url, postal_code, country, sales_channel=sales_channel, timeout=timeout
     )
     return sellers
-
-

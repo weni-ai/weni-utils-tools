@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 import pytz
-
 from tzlocal.windows_tz import win_tz
 
 from .client import VTEXClient
@@ -51,7 +50,6 @@ class OrderConcierge:
             vtex_app_token=vtex_app_token,
         )
         self.timezone = self._get_timezone()
-
 
     def _get_timezone(self):
         """
@@ -125,14 +123,14 @@ class OrderConcierge:
         Returns:
             Dictionary with orders and current date
         """
-        orders_data = self.client.get_orders_by_document(document, incomplete_orders=incomplete_orders)
+        orders_data = self.client.get_orders_by_document(
+            document, incomplete_orders=incomplete_orders
+        )
         converted_orders = self._convert_cents(orders_data)
 
         return {
             "orders": converted_orders,
-            "current_time": datetime.now(self.timezone).strftime(
-                "%Y/%m/%d %H:%M:%S"
-            ),
+            "current_time": datetime.now(self.timezone).strftime("%Y/%m/%d %H:%M:%S"),
         }
 
     def get_order_details(self, order_id: str) -> Dict[str, Any]:
@@ -154,7 +152,5 @@ class OrderConcierge:
 
         return {
             "order": converted_order,
-            "current_time": datetime.now(self.timezone).strftime(
-                "%Y/%m/%d %H:%M:%S"
-            ),
+            "current_time": datetime.now(self.timezone).strftime("%Y/%m/%d %H:%M:%S"),
         }
