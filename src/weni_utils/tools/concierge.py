@@ -24,10 +24,12 @@ class ProductConcierge(Utils, VTEXClient, StockManager):
 
     Example:
         from weni_utils.tools import ProductConcierge
+        from weni_utils.tools.plugins import Regionalization
 
         concierge = ProductConcierge(
             base_url="https://loja.vtexcommercestable.com.br",
             store_url="https://loja.com.br",
+            plugins=[Regionalization()]
         )
 
         # Full search with plugins and stock verification
@@ -66,11 +68,12 @@ class ProductConcierge(Utils, VTEXClient, StockManager):
             utm_source: UTM source for links
             priority_categories: Categories with special stock logic
         """
-        super().__init__(base_url=base_url, 
-                        store_url=store_url, 
-                        vtex_app_key=vtex_app_key, 
-                        vtex_app_token=vtex_app_token
-                        )
+        super().__init__(
+            base_url=base_url,
+            store_url=store_url,
+            vtex_app_key=vtex_app_key,
+            vtex_app_token=vtex_app_token,
+        )
 
         # Configurations
         self.max_products = max_products
@@ -127,7 +130,7 @@ class ProductConcierge(Utils, VTEXClient, StockManager):
             context.region_id, context.region_error, context.sellers = self.get_region(
                 postal_code=context.postal_code,
                 trade_policy=context.trade_policy,
-                country_code=context.country_code
+                country_code=context.country_code,
             )
 
         # 2. Perform intelligent search (returns raw data)
@@ -154,16 +157,11 @@ class ProductConcierge(Utils, VTEXClient, StockManager):
             priority_categories=self.priority_categories,
         )
 
-
         # 5. Filter products, keeping only those with stock
-        filtered_products = self.filter_products_with_stock(
-            products, products_with_stock
-        )
+        filtered_products = self.filter_products_with_stock(products, products_with_stock)
 
         # 6. Limit payload size
-        filtered_products = self.limit_payload_size(
-            filtered_products, self.max_payload_kb
-        )
+        filtered_products = self.limit_payload_size(filtered_products, self.max_payload_kb)
 
         return filtered_products
 

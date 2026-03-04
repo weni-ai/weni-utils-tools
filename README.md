@@ -24,7 +24,7 @@ Before this library, each client had a complete copy of the agent code, resultin
 
 A centralized library with plugin system:
 - ✅ Shared core (search, simulation, stock)
-- ✅ Optional plugins (regionalization, wholesale, carousel)
+- ✅ Optional plugins (regionalization, carousel)
 - ✅ Bug fix = 1 deploy, all updated
 - ✅ New client = import and configure plugins
 
@@ -89,19 +89,6 @@ concierge = ProductConcierge(
 result = concierge.search(
     product_name="cement",
     postal_code="01310-100"
-)
-```
-
-### Wholesale
-For clients with wholesale pricing.
-
-```python
-from weni_utils.tools.plugins import Wholesale
-
-concierge = ProductConcierge(
-    plugins=[
-        Wholesale(fixed_price_url="https://store.com.br/fixedprices")
-    ]
 )
 ```
 
@@ -182,7 +169,6 @@ concierge = ProductConcierge(
 2. **intelligent_search** - Search products in VTEX
 3. **after_search** - Plugins filter/modify products
 4. **check_availability** - Verify stock
-5. **after_stock_check** - Plugins enrich (e.g., wholesale prices)
 6. **filter_products** - Filter only products with stock
 7. **enrich_products** - Plugins add extra data
 8. **finalize_result** - Plugins perform final actions (e.g., send events)

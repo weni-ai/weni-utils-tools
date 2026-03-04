@@ -19,7 +19,6 @@ from weni_utils.tools import (
     get_sellers_by_region,
     simulate_cart,
     check_stock_availability,
-    get_wholesale_price,
     get_product_price,
     send_capi_event,
     trigger_weni_flow,

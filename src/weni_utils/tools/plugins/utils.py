@@ -320,33 +320,3 @@ def get_sellers_by_region(
     return sellers
 
 
-def get_wholesale_price(
-    sku_id: str,
-    seller_id: str,
-    base_url: str = "https://www.store.com.br/fixedprices",
-    timeout: int = 10,
-) -> Dict[str, Optional[Any]]:
-    """
-    Get wholesale price (minimum quantity and value) for a SKU.
-
-    Args:
-        sku_id: SKU ID
-        seller_id: Seller ID
-        base_url: Fixed prices API base URL
-        timeout: Timeout (default: 10)
-
-    Returns:
-        Dictionary with minQuantity and valueAtacado
-
-    Example:
-        price = get_wholesale_price(
-            sku_id="61556",
-            seller_id="store1000",
-            base_url="https://www.store.com.br/fixedprices"
-        )
-        # {"minQuantity": 10, "valueAtacado": 179.90}
-    """
-    from .wholesale import Wholesale
-
-    wholesale = Wholesale(fixed_price_url=base_url, timeout=timeout)
-    return wholesale._get_fixed_price(base_url, seller_id, sku_id)
