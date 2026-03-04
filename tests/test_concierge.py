@@ -1,189 +1,189 @@
-"""
-Tests for ProductConcierge
-"""
+from unittest.mock import Mock, patch
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-
-from weni_utils.tools import ProductConcierge
+from weni_utils.tools.concierge import ProductConcierge
 from weni_utils.tools.context import SearchContext
-from weni_utils.tools.plugins import PluginBase
 
-from dotenv import load_dotenv
-import os
-
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+VALID_BASE_URL = "https://test.vtexcommercestable.com.br"
+VALID_STORE_URL = "https://test.com.br"
 
 
-class TestProductConcierge:
-    """Tests for the ProductConcierge class."""
-    
-    def test_init_basic(self):
-        """Test basic initialization."""
-        concierge = ProductConcierge(
-            base_url="https://test.vtexcommercestable.com.br",
-            store_url="https://test.com.br"
-        )
-        
-        assert concierge.client is not None
-        assert concierge.stock_manager is not None
-        assert concierge.plugins == []
-        assert concierge.max_products == 20
-        assert concierge.max_variations == 5
-    
-    def test_init_with_plugins(self):
-        """Test initialization with plugins."""
-        plugin = PluginBase()
-        
-        concierge = ProductConcierge(
-            base_url="https://test.vtexcommercestable.com.br",
-            store_url="https://test.com.br",
-            plugins=[plugin]
-        )
-        
-        assert len(concierge.plugins) == 1
-        assert concierge.plugins[0] is plugin
-    
-    def test_init_with_config(self):
-        """Test initialization with custom config."""
-        concierge = ProductConcierge(
-            base_url=os.getenv("VTEX_BASE_URL"),
-            store_url=os.getenv("VTEX_STORE_URL"),
+def _make_concierge(**kwargs):
+    defaults = {"base_url": VALID_BASE_URL, "store_url": VALID_STORE_URL}
+    defaults.update(kwargs)
+    return ProductConcierge(**defaults)
+
+
+# ---------------------------------------------------------------------------
+# Initialization
+# ---------------------------------------------------------------------------
+class TestProductConciergeInit:
+    def test_defaults(self):
+        c = _make_concierge()
+        assert c.max_products == 20
+        assert c.max_variations == 5
+        assert c.max_payload_kb == 20
+        assert c.utm_source is None
+        assert c.priority_categories == []
+
+    def test_custom_config(self):
+        c = _make_concierge(
             max_products=10,
             max_variations=3,
             max_payload_kb=15,
-            utm_source="weni_concierge"
+            utm_source="test_src",
+            priority_categories=["/Floors/"],
+        )
+        assert c.max_products == 10
+        assert c.max_variations == 3
+        assert c.max_payload_kb == 15
+        assert c.utm_source == "test_src"
+        assert c.priority_categories == ["/Floors/"]
+
+
+# ---------------------------------------------------------------------------
+# search flow (all HTTP mocked)
+# ---------------------------------------------------------------------------
+class TestProductConciergeSearch:
+    def _raw_product(self, name="Product A", sku_id="100", price=50.0):
+        return {
+            "productName": name,
+            "description": "desc",
+            "brand": "Brand",
+            "link": "/product-a",
+            "categories": ["/Cat/"],
+            "specificationGroups": [],
+            "items": [
+                {
+                    "itemId": sku_id,
+                    "nameComplete": f"{name} - Var",
+                    "variations": [],
+                    "images": [{"imageUrl": "https://img.com/a.jpg"}],
+                    "sellers": [
+                        {
+                            "sellerId": "1",
+                            "sellerDefault": True,
+                            "commertialOffer": {
+                                "Price": price,
+                                "AvailableQuantity": 10,
+                                "Installments": [],
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_full_flow(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
         )
 
-        search_result = concierge.search(product_name="ceramica")
-        
-        print(search_result)
+        c = _make_concierge()
+        result = c.search(product_name="drill")
+        assert isinstance(result, dict)
 
-
-    def test_search_process_products(self):
-        """Test search: intelligent_search (client) + process_products (concierge)."""
-        concierge = ProductConcierge(
-            base_url=os.getenv("VTEX_BASE_URL"),
-            store_url=os.getenv("VTEX_STORE_URL")
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_no_results(self, mock_post, mock_get):
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": []}),
+            raise_for_status=Mock(),
         )
-        raw_result = concierge.intelligent_search(product_name="ceramica")
-        formatted_result = concierge.process_products(raw_result, extra_product_fields=["clusterHighlights", "items.0.images", "imagemteste"])
-        print(formatted_result)
-        assert raw_result is not None
-        assert len(raw_result) > 0
-        assert formatted_result is not None
-        assert isinstance(formatted_result, dict)
-        assert len(formatted_result) > 0
-
-    
-    def test_search_check_availability_simple(self):
-        """Test search: check_availability_simple (concierge)."""
-        concierge = ProductConcierge(
-            base_url=os.getenv("VTEX_BASE_URL"),
-            store_url=os.getenv("VTEX_STORE_URL")
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"items": []}),
+            raise_for_status=Mock(),
         )
 
-        postal_code = "57022-230"
-        country_code = "BRA"
-        trade_policy = 1
+        result = _make_concierge().search(product_name="nonexistent")
+        assert result == {}
 
-        context = SearchContext(postal_code=postal_code,
-                                country_code=country_code,
-                                trade_policy=trade_policy,
-                                product_name="sofá")
-
-        region_id, error, sellers = concierge.get_region(postal_code=context.postal_code, trade_policy=context.trade_policy, country_code=context.country_code)
-        raw_result = concierge.intelligent_search(product_name=context.product_name, region_id=region_id)
-        formatted_result = concierge.process_products(raw_result, extra_product_fields=["clusterHighlights", "items.0.images", "imagemteste"], remove_specifications=["sellerId"])
-        print(f"Formatted Result: {formatted_result}")
-        if sellers:
-            context.sellers = sellers
-        
-        product_with_stock = concierge.check_availability_with_sellers(client=concierge, products=formatted_result, context=context)
-
-
-        print(product_with_stock)
-
-
-class TestProductConciergePluginFlow:
-    """Tests for plugin execution flow."""
-    
-    def test_plugin_before_search_called(self):
-        """Test that before_search hook is called."""
-        plugin = Mock(spec=PluginBase)
-        plugin.before_search.return_value = SearchContext(product_name="test")
-        plugin.after_search.return_value = {}
-        plugin.after_stock_check.return_value = []
-        plugin.enrich_products.return_value = {}
-        plugin.finalize_result.return_value = {}
-        
-        concierge = ProductConcierge(
-            base_url="https://test.vtexcommercestable.com.br",
-            store_url="https://test.com.br",
-            plugins=[plugin]
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_with_postal_code_calls_region(self, mock_post, mock_get):
+        region_resp = Mock(
+            status_code=200,
+            json=Mock(return_value=[{"id": "v1", "sellers": [{"id": "s1"}]}]),
+            raise_for_status=Mock(),
         )
-        
-        with patch.object(concierge.client, 'intelligent_search', return_value={}):
-            with patch.object(concierge.stock_manager, 'check_availability_simple', return_value=[]):
-                with patch.object(concierge.stock_manager, 'filter_products_with_stock', return_value={}):
-                    with patch.object(concierge.stock_manager, 'limit_payload_size', return_value={}):
-                        concierge.search(product_name="test")
-        
-        plugin.before_search.assert_called_once()
-    
-    def test_plugin_after_search_called(self):
-        """Test that after_search hook is called."""
-        plugin = Mock(spec=PluginBase)
-        plugin.before_search.return_value = SearchContext(product_name="test")
-        plugin.after_search.return_value = {"product": {}}
-        plugin.after_stock_check.return_value = []
-        plugin.enrich_products.return_value = {}
-        plugin.finalize_result.return_value = {}
-        
-        concierge = ProductConcierge(
-            base_url="https://test.vtexcommercestable.com.br",
-            store_url="https://test.com.br",
-            plugins=[plugin]
+        search_resp = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": []}),
+            raise_for_status=Mock(),
         )
-        
-        with patch.object(concierge.client, 'intelligent_search', return_value={"product": {}}):
-            with patch.object(concierge.stock_manager, 'check_availability_simple', return_value=[]):
-                with patch.object(concierge.stock_manager, 'filter_products_with_stock', return_value={}):
-                    with patch.object(concierge.stock_manager, 'limit_payload_size', return_value={}):
-                        concierge.search(product_name="test")
-        
-        plugin.after_search.assert_called_once()
+        mock_get.side_effect = [region_resp, search_resp]
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"items": []}),
+            raise_for_status=Mock(),
+        )
+
+        _make_concierge().search(product_name="drill", postal_code="01310-100")
+        assert mock_get.call_count == 2
+        region_url = mock_get.call_args_list[0][0][0]
+        assert "regions" in region_url
 
 
+# ---------------------------------------------------------------------------
+# SearchContext
+# ---------------------------------------------------------------------------
 class TestSearchContext:
-    """Tests for SearchContext."""
-    
-    def test_context_creation(self):
-        """Test context creation with defaults."""
-        context = SearchContext(product_name="test")
-        
-        assert context.product_name == "test"
-        assert context.brand_name == ""
-        assert context.postal_code is None
-        assert context.quantity == 1
-        assert context.country_code == "BRA"
-        assert context.sellers == []
-    
-    def test_context_add_to_result(self):
-        """Test adding data to result."""
-        context = SearchContext(product_name="test")
-        
-        context.add_to_result("key", "value")
-        
-        assert context.extra_data["key"] == "value"
-    
-    def test_context_get_credential(self):
-        """Test getting credentials."""
-        context = SearchContext(
-            product_name="test",
-            credentials={"API_KEY": "secret"}
+    def test_defaults(self):
+        ctx = SearchContext(product_name="test")
+        assert ctx.product_name == "test"
+        assert ctx.brand_name == ""
+        assert ctx.postal_code is None
+        assert ctx.quantity == 1
+        assert ctx.country_code == "BRA"
+        assert ctx.sellers == []
+        assert ctx.extra_data == {}
+
+    def test_add_to_result(self):
+        ctx = SearchContext(product_name="test")
+        ctx.add_to_result("key", "value")
+        assert ctx.extra_data["key"] == "value"
+
+    def test_get_credential(self):
+        ctx = SearchContext(product_name="test", credentials={"API_KEY": "secret"})
+        assert ctx.get_credential("API_KEY") == "secret"
+        assert ctx.get_credential("MISSING") is None
+        assert ctx.get_credential("MISSING", "default") == "default"
+
+    def test_get_contact(self):
+        ctx = SearchContext(product_name="test", contact_info={"urn": "whatsapp:+55"})
+        assert ctx.get_contact("urn") == "whatsapp:+55"
+        assert ctx.get_contact("missing", "fallback") == "fallback"
+
+    def test_full_construction(self):
+        ctx = SearchContext(
+            product_name="drill",
+            brand_name="Bosch",
+            postal_code="01310-100",
+            quantity=2,
+            country_code="BRA",
+            delivery_type="Delivery",
+            trade_policy=2,
         )
-        
-        assert context.get_credential("API_KEY") == "secret"
-        assert context.get_credential("MISSING") is None
-        assert context.get_credential("MISSING", "default") == "default"
+        assert ctx.brand_name == "Bosch"
+        assert ctx.postal_code == "01310-100"
+        assert ctx.quantity == 2
+        assert ctx.delivery_type == "Delivery"
+        assert ctx.trade_policy == 2

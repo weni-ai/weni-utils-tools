@@ -10,10 +10,9 @@ from typing import Any, Dict, List, Optional
 from .client import VTEXClient
 from .context import SearchContext
 from .stock import StockManager
-from .utils import Utils
 
 
-class ProductConcierge(Utils, VTEXClient, StockManager):
+class ProductConcierge(VTEXClient, StockManager):
     """
     Main class for VTEX product search.
 
@@ -153,7 +152,6 @@ class ProductConcierge(Utils, VTEXClient, StockManager):
             client=self,
             products=products,
             context=context,
-            sellers=context.sellers,
             priority_categories=self.priority_categories,
         )
 
