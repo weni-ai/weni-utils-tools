@@ -8,7 +8,7 @@ This module uses VTEXClient internally to avoid code duplication.
 All functions maintain the same public API for backward compatibility.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from .client import VTEXClient
 
@@ -79,7 +79,11 @@ def search_products(
     )
 
     # Build query with color if provided
-    query_name = f"{product_name} {brand_name} {color}".strip() if color else f"{product_name} {brand_name}".strip()
+    query_name = (
+        f"{product_name} {brand_name} {color}".strip()
+        if color
+        else f"{product_name} {brand_name}".strip()
+    )
 
     # Get raw products from API
     raw_products = client.intelligent_search(
@@ -152,36 +156,37 @@ def search_product_by_sku(
     # For now, we use the basic method
     return client.get_product_by_sku(sku_id)
 
+
 def get_nested_value(data, path: str):
-        """
-        Get a nested value from a dictionary.
-        """
-        current = data
+    """
+    Get a nested value from a dictionary.
+    """
+    current = data
 
-        for part in path.split("."):
-            if isinstance(current, list):
-                try:
-                    index = int(part)
-                    current = current[index]
-                except (ValueError, IndexError):
-                    return None
-
-            elif isinstance(current, dict):
-                if part not in current:
-                    return None
-                current = current[part]
-
-            else:
+    for part in path.split("."):
+        if isinstance(current, list):
+            try:
+                index = int(part)
+                current = current[index]
+            except (ValueError, IndexError):
                 return None
 
-        return current
-    
+        elif isinstance(current, dict):
+            if part not in current:
+                return None
+            current = current[part]
+
+        else:
+            return None
+
+    return current
+
+
 def normalize_field_name(field_path: str) -> str:
     """
     Normalize a field name.
     """
     return field_path.split(".")[-1]
-
 
 
 # =============================================================================
@@ -229,5 +234,3 @@ def get_sku_details(
 
     # Use get_sku_details from client
     return client.get_sku_details(sku_id)
-
-

@@ -9,6 +9,8 @@ from typing import Any, Dict, Optional
 
 import pytz
 
+from tzlocal.windows_tz import win_tz
+
 from .client import VTEXClient
 
 
@@ -48,6 +50,21 @@ class OrderConcierge:
             vtex_app_key=vtex_app_key,
             vtex_app_token=vtex_app_token,
         )
+        self.timezone = self._get_timezone()
+
+
+    def _get_timezone(self):
+        """
+        Get store timezone from VTEX (Windows name) and return a pytz timezone object.
+        """
+        order_form = self.client.create_order_form()
+        store_preferences = order_form.get("storePreferences", {})
+
+        windows_tz = store_preferences.get("timeZone") or "E. South America Standard Time"
+        iana_tz = win_tz.get(windows_tz)
+        if iana_tz is None:
+            iana_tz = win_tz["E. South America Standard Time"]
+        return pytz.timezone(iana_tz)
 
     def _convert_cents(self, data: Any) -> Any:
         """
@@ -113,8 +130,8 @@ class OrderConcierge:
 
         return {
             "orders": converted_orders,
-            "brazil_time": datetime.now(pytz.timezone("America/Sao_Paulo")).strftime(
-                "%d/%m/%Y %H:%M:%S"
+            "current_time": datetime.now(self.timezone).strftime(
+                "%Y/%m/%d %H:%M:%S"
             ),
         }
 
@@ -137,7 +154,7 @@ class OrderConcierge:
 
         return {
             "order": converted_order,
-            "brazil_time": datetime.now(pytz.timezone("America/Sao_Paulo")).strftime(
-                "%d/%m/%Y %H:%M:%S"
+            "current_time": datetime.now(self.timezone).strftime(
+                "%Y/%m/%d %H:%M:%S"
             ),
         }

@@ -13,104 +13,14 @@ from .stock import StockManager
 from .utils import Utils
 
 
-class PluginBase:
-    """
-    Base class for plugins.
-
-    Plugins can implement these hooks:
-    - before_search: Executed before searching (can modify context)
-    - after_search: Executed after searching (can modify products)
-    - after_stock_check: Executed after stock check
-    - enrich_products: Enrich products with additional data
-    """
-
-    def before_search(self, context: SearchContext, client: VTEXClient) -> SearchContext:
-        """
-        Hook executed before searching.
-
-        Args:
-            context: Search context
-            client: VTEX client
-
-        Returns:
-            Modified context
-        """
-        return context
-
-    def after_search(
-        self, products: Dict[str, Dict], context: SearchContext, client: VTEXClient
-    ) -> Dict[str, Dict]:
-        """
-        Hook executed after searching.
-
-        Args:
-            products: Found products
-            context: Search context
-            client: VTEX client
-
-        Returns:
-            Modified products
-        """
-        return products
-
-    def after_stock_check(
-        self, products_with_stock: List[Dict], context: SearchContext, client: VTEXClient
-    ) -> List[Dict]:
-        """
-        Hook executed after stock check.
-
-        Args:
-            products_with_stock: Products with available stock
-            context: Search context
-            client: VTEX client
-
-        Returns:
-            Modified products
-        """
-        return products_with_stock
-
-    def enrich_products(
-        self, products: Dict[str, Dict], context: SearchContext, client: VTEXClient
-    ) -> Dict[str, Dict]:
-        """
-        Hook to enrich products with additional data.
-
-        Args:
-            products: Products to enrich
-            context: Search context
-            client: VTEX client
-
-        Returns:
-            Enriched products
-        """
-        return products
-
-    def finalize_result(self, result: Dict[str, Any], context: SearchContext) -> Dict[str, Any]:
-        """
-        Hook to finalize the result before returning.
-
-        Args:
-            result: Final result
-            context: Search context
-
-        Returns:
-            Modified result
-        """
-        return result
-
-
-class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
+class ProductConcierge(Utils, VTEXClient, StockManager):
     """
     Main class for VTEX product search.
 
     Orchestrates the complete search flow:
-    1. Executes before_search hooks from plugins
-    2. Performs intelligent search
-    3. Executes after_search hooks from plugins
-    4. Checks stock availability
-    5. Executes after_stock_check hooks from plugins
-    6. Enriches products with plugins
-    7. Filters and formats the final result
+    1. Performs intelligent search
+    2. Checks stock availability
+    3. Filters and formats the final result
 
     Example:
         from weni_utils.tools import ProductConcierge
@@ -138,7 +48,6 @@ class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
         store_url: str,
         vtex_app_key: Optional[str] = None,
         vtex_app_token: Optional[str] = None,
-        plugins: Optional[List[PluginBase]] = None,
         max_products: int = 20,
         max_variations: int = 5,
         max_payload_kb: int = 20,
@@ -153,19 +62,18 @@ class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
             store_url: Store URL
             vtex_app_key: VTEX App Key (optional)
             vtex_app_token: VTEX App Token (optional)
-            plugins: List of plugins to use
             max_products: Maximum products to return
             max_variations: Maximum variations per product
             max_payload_kb: Maximum payload size in KB
             utm_source: UTM source for links
             priority_categories: Categories with special stock logic
         """
-        super().__init__(base_url=base_url, 
-                        store_url=store_url, 
-                        vtex_app_key=vtex_app_key, 
-                        vtex_app_token=vtex_app_token
-                        )
-        self.plugins = plugins or []
+        super().__init__(
+            base_url=base_url,
+            store_url=store_url,
+            vtex_app_key=vtex_app_key,
+            vtex_app_token=vtex_app_token,
+        )
 
         # Configurations
         self.max_products = max_products
@@ -222,7 +130,7 @@ class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
             context.region_id, context.region_error, context.sellers = self.get_region(
                 postal_code=context.postal_code,
                 trade_policy=context.trade_policy,
-                country_code=context.country_code
+                country_code=context.country_code,
             )
 
         # 2. Perform intelligent search (returns raw data)
@@ -240,6 +148,7 @@ class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
             utm_source=self.utm_source,
         )
 
+        # 4. Check stock availability with sellers
         products_with_stock = self.check_availability_with_sellers(
             client=self,
             products=products,
@@ -248,16 +157,11 @@ class ProductConcierge(Utils, VTEXClient, StockManager, PluginBase):
             priority_categories=self.priority_categories,
         )
 
-
         # 5. Filter products, keeping only those with stock
-        filtered_products = self.filter_products_with_stock(
-            products, products_with_stock
-        )
+        filtered_products = self.filter_products_with_stock(products, products_with_stock)
 
         # 6. Limit payload size
-        filtered_products = self.limit_payload_size(
-            filtered_products, self.max_payload_kb
-        )
+        filtered_products = self.limit_payload_size(filtered_products, self.max_payload_kb)
 
         return filtered_products
 
