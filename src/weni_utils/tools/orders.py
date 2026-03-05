@@ -11,6 +11,7 @@ import pytz
 from tzlocal.windows_tz import win_tz
 
 from .client import VTEXClient
+from .utils import convert_cents
 
 
 class OrderConcierge:
@@ -64,55 +65,7 @@ class OrderConcierge:
             iana_tz = win_tz["E. South America Standard Time"]
         return pytz.timezone(iana_tz)
 
-    def _convert_cents(self, data: Any) -> Any:
-        """
-        Convert values from cents to currency.
-
-        Args:
-            data: Data to convert
-
-        Returns:
-            Converted data
-        """
-        currency_fields = [
-            "totalValue",
-            "value",
-            "totals",
-            "itemPrice",
-            "sellingPrice",
-            "price",
-            "listPrice",
-            "costPrice",
-            "basePrice",
-            "fixedPrice",
-            "shippingEstimate",
-            "tax",
-            "discount",
-            "total",
-            "subtotal",
-            "freight",
-            "marketingData",
-            "paymentData",
-        ]
-
-        if isinstance(data, dict):
-            converted_data = {}
-            for key, value in data.items():
-                if isinstance(value, (dict, list)):
-                    converted_data[key] = self._convert_cents(value)
-                elif isinstance(value, (int, float)) and any(
-                    field in key.lower() for field in currency_fields
-                ):
-                    converted_data[key] = round(value / 100, 2) if value is not None else value
-                else:
-                    converted_data[key] = value
-            return converted_data
-        elif isinstance(data, list):
-            return [self._convert_cents(item) for item in data]
-        else:
-            return data
-
-    def search_orders(self, document: str, incomplete_orders: bool = False) -> Dict[str, Any]:
+    def search_orders(self, document: str = None, email: str = None, incomplete_orders: bool = False) -> Dict[str, Any]:
         """
         Search orders by document.
 
@@ -123,10 +76,10 @@ class OrderConcierge:
         Returns:
             Dictionary with orders and current date
         """
-        orders_data = self.client.get_orders_by_document(
-            document, incomplete_orders=incomplete_orders
+        orders_data = self.client.list_orders(
+            document=document, email=email, include_incomplete=incomplete_orders
         )
-        converted_orders = self._convert_cents(orders_data)
+        converted_orders = convert_cents(orders_data)
 
         return {
             "orders": converted_orders,
@@ -148,7 +101,7 @@ class OrderConcierge:
         if not order_data:
             return {"error": "Order not found", "order": None}
 
-        converted_order = self._convert_cents(order_data)
+        converted_order = convert_cents(order_data)
 
         return {
             "order": converted_order,
