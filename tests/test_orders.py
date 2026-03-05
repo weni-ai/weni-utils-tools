@@ -61,6 +61,152 @@ class TestCreatePathOrderId:
 
 
 # ---------------------------------------------------------------------------
+# Utils.remove_fields_orders
+# ---------------------------------------------------------------------------
+class TestRemoveFieldsOrders:
+    """Tests for remove_fields_orders covering list, detail, and edge cases."""
+
+    def _make_order_list(self):
+        return {
+            "orders": {
+                "list": [
+                    {
+                        "orderId": "ORD-1",
+                        "hostname": "store.example.com",
+                        "status": "invoiced",
+                        "nested": {"hostname": "should-also-go"},
+                    },
+                    {
+                        "orderId": "ORD-2",
+                        "hostname": "store.example.com",
+                        "status": "payment-approved",
+                    },
+                ],
+                "paging": {"total": 2, "pages": 1},
+                "stats": {"totalValue": 100},
+            },
+            "current_time": "2026-03-05",
+        }
+
+    def _make_order_detail(self):
+        return {
+            "order": {
+                "orderId": "ORD-1",
+                "followUpEmail": "test@ct.vtex.com.br",
+                "hostname": "store.example.com",
+                "paymentData": {
+                    "transactions": [
+                        {
+                            "merchantName": "STORE",
+                            "payments": [
+                                {
+                                    "paymentSystemName": "Visa",
+                                    "value": 100,
+                                },
+                                {
+                                    "paymentSystemName": "Pix",
+                                    "value": 95,
+                                },
+                            ],
+                        }
+                    ]
+                },
+            },
+            "current_time": "2026-03-05",
+        }
+
+    # --- Order list structure (orders.list[]) ---
+
+    def test_list_remove_field_from_each_order(self):
+        data = self._make_order_list()
+        result = Utils.remove_fields_orders(data, ["hostname"])
+        for order in result["orders"]["list"]:
+            assert "hostname" not in order
+        assert "orderId" in result["orders"]["list"][0]
+
+    def test_list_recursive_removes_nested_occurrences(self):
+        data = self._make_order_list()
+        result = Utils.remove_fields_orders(data, ["hostname"])
+        assert "hostname" not in result["orders"]["list"][0].get("nested", {})
+
+    def test_list_remove_from_orders_dict(self):
+        data = self._make_order_list()
+        result = Utils.remove_fields_orders(data, ["paging"])
+        assert "paging" not in result["orders"]
+        assert "stats" in result["orders"]
+
+    def test_list_remove_from_root(self):
+        data = self._make_order_list()
+        result = Utils.remove_fields_orders(data, ["current_time"])
+        assert "current_time" not in result
+        assert "orders" in result
+
+    def test_list_remove_mixed_levels(self):
+        data = self._make_order_list()
+        result = Utils.remove_fields_orders(data, ["hostname", "paging", "current_time"])
+        assert "paging" not in result["orders"]
+        assert "current_time" not in result
+        for order in result["orders"]["list"]:
+            assert "hostname" not in order
+
+    # --- Single order structure (order) ---
+
+    def test_detail_remove_simple_field(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(data, ["followUpEmail"])
+        assert "followUpEmail" not in result["order"]
+        assert "orderId" in result["order"]
+
+    def test_detail_recursive_removes_deeply_nested(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(data, ["paymentSystemName"])
+        for payment in result["order"]["paymentData"]["transactions"][0]["payments"]:
+            assert "paymentSystemName" not in payment
+        assert result["order"]["paymentData"]["transactions"][0]["payments"][0]["value"] == 100
+
+    def test_detail_dot_notation_path(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(data, ["paymentData.transactions.0.merchantName"])
+        assert "merchantName" not in result["order"]["paymentData"]["transactions"][0]
+        assert "payments" in result["order"]["paymentData"]["transactions"][0]
+
+    def test_detail_multiple_strategies_combined(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(
+            data,
+            ["followUpEmail", "paymentSystemName", "paymentData.transactions.0.merchantName"],
+        )
+        assert "followUpEmail" not in result["order"]
+        assert "merchantName" not in result["order"]["paymentData"]["transactions"][0]
+        for payment in result["order"]["paymentData"]["transactions"][0]["payments"]:
+            assert "paymentSystemName" not in payment
+
+    # --- Edge cases ---
+
+    def test_nonexistent_field_is_ignored(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(data, ["doesNotExist"])
+        assert result["order"]["orderId"] == "ORD-1"
+
+    def test_invalid_dot_path_is_ignored(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(data, ["a.b.c.999.nope"])
+        assert result["order"]["orderId"] == "ORD-1"
+
+    def test_empty_fields_list(self):
+        data = self._make_order_detail()
+        result = Utils.remove_fields_orders(data, [])
+        assert result["order"]["orderId"] == "ORD-1"
+        assert result["order"]["followUpEmail"] == "test@ct.vtex.com.br"
+
+    def test_plain_dict_without_orders_or_order_key(self):
+        data = {"foo": "bar", "baz": 42}
+        result = Utils.remove_fields_orders(data, ["baz"])
+        assert "baz" not in result
+        assert result["foo"] == "bar"
+
+
+# ---------------------------------------------------------------------------
 # OrderDataProxy
 # ---------------------------------------------------------------------------
 class TestOrderDataProxy:
