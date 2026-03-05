@@ -1,5 +1,68 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
+
+# Keys that represent currency values in cents (VTEX API)
+CURRENCY_KEYS = (
+    "totalValue",
+    "value",
+    "totals",
+    "itemPrice",
+    "sellingPrice",
+    "price",
+    "listPrice",
+    "costPrice",
+    "basePrice",
+    "fixedPrice",
+    "shippingEstimate",
+    "tax",
+    "discount",
+    "total",
+    "subtotal",
+    "freight",
+    "marketingData",
+    "paymentData",
+)
+
+
+def convert_cents(data: Any) -> Any:
+    """
+    Convert numeric values in known currency keys from cents to currency units.
+
+    Pure function: no I/O, no framework. Safe to use from any layer (domain, use case, adapter).
+    Recursively processes dicts and lists; other types are returned unchanged.
+    A key is treated as currency if its lowercase form contains any of the known currency names.
+
+    Args:
+        data: Nested structure (dict/list) with optional currency fields.
+
+    Returns:
+        New structure with currency values divided by 100 (rounded to 2 decimals).
+    """
+    currency_lower = [f.lower() for f in CURRENCY_KEYS]
+
+    def _is_currency_key(key: str) -> bool:
+        k = key.lower()
+        return any(f in k for f in currency_lower)
+
+    def _convert(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {
+                k: (
+                    _convert(v)
+                    if isinstance(v, (dict, list))
+                    else (
+                        round(v / 100, 2)
+                        if v is not None and isinstance(v, (int, float)) and _is_currency_key(k)
+                        else v
+                    )
+                )
+                for k, v in obj.items()
+            }
+        if isinstance(obj, list):
+            return [_convert(item) for item in obj]
+        return obj
+
+    return _convert(data)
 
 
 class Utils:

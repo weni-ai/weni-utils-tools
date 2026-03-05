@@ -414,7 +414,7 @@ class VTEXClient(ProxyRequest, Utils):
             return None
 
     def _fetch_orders(
-        self, document: str, include_incomplete: bool = False
+        self, document: str = None, email: str = None, include_incomplete: bool = False
     ) -> Tuple[Optional[Dict], Optional[str]]:
         """
         Fetch orders from OMS API.
@@ -426,7 +426,13 @@ class VTEXClient(ProxyRequest, Utils):
         Returns:
             Tuple of (orders_data, error_message)
         """
-        url = f"{self.base_url}/api/oms/pvt/orders?q={document}"
+        if document:
+            url = f"{self.base_url}/api/oms/pvt/orders?q={document}"
+        elif email:
+            url = f"{self.base_url}/api/oms/pvt/orders?q={email}"
+        else:
+            return None, "Document or email is required"
+
         if include_incomplete:
             url += "&incompleteOrders=true"
 
@@ -437,22 +443,25 @@ class VTEXClient(ProxyRequest, Utils):
         except requests.exceptions.RequestException as e:
             return None, str(e)
 
-    def get_orders_by_document(self, document: str, include_incomplete: bool = False) -> Dict:
+    def list_orders(
+        self, document: str = None, email: str = None, include_incomplete: bool = False
+    ) -> Dict:
         """
-        Search orders by document.
+        List orders by document or email.
 
         Args:
             document: Customer document
+            email: Customer email
             include_incomplete: Whether to also fetch incomplete orders
 
         Returns:
             Dictionary with orders list
         """
-        if not document:
-            return {"error": "Document is required", "list": []}
+        if not document and not email:
+            return {"error": "Document or email is required", "list": []}
 
         # Fetch complete orders
-        orders_data, error = self._fetch_orders(document)
+        orders_data, error = self._fetch_orders(document, email, include_incomplete)
         if error:
             print(f"ERROR: Error searching orders: {error}")
             return {"error": f"Error searching orders: {error}", "list": []}

@@ -408,13 +408,13 @@ class TestGetRegion:
 
 
 # ---------------------------------------------------------------------------
-# get_orders_by_document (mocked HTTP)
+# list_orders (mocked HTTP)
 # ---------------------------------------------------------------------------
-class TestGetOrdersByDocument:
+class TestListOrders:
     @patch("weni_utils.tools.client.requests.get")
     def test_empty_document(self, mock_get):
-        result = _make_client(vtex_app_key="k", vtex_app_token="t").get_orders_by_document("")
-        assert result["error"] == "Document is required"
+        result = _make_client(vtex_app_key="k", vtex_app_token="t").list_orders(document="")
+        assert result["error"] == "Document or email is required"
         mock_get.assert_not_called()
 
     @patch("weni_utils.tools.client.requests.get")
@@ -425,8 +425,8 @@ class TestGetOrdersByDocument:
             json=Mock(return_value=orders),
             raise_for_status=Mock(),
         )
-        result = _make_client(vtex_app_key="k", vtex_app_token="t").get_orders_by_document(
-            "12345678900"
+        result = _make_client(vtex_app_key="k", vtex_app_token="t").list_orders(
+            document="12345678900"
         )
         assert len(result["list"]) == 2
 
@@ -437,8 +437,8 @@ class TestGetOrdersByDocument:
         mock_get.return_value = Mock(raise_for_status=Mock())
         mock_get.return_value.json = Mock(side_effect=[complete, incomplete])
 
-        result = _make_client(vtex_app_key="k", vtex_app_token="t").get_orders_by_document(
-            "12345678900", include_incomplete=True
+        result = _make_client(vtex_app_key="k", vtex_app_token="t").list_orders(
+            document="12345678900", include_incomplete=True
         )
         order_ids = {o["orderId"] for o in result["list"]}
         assert order_ids == {"O1", "O2"}
