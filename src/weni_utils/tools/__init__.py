@@ -24,11 +24,11 @@ Usage (plugin functionalities):
     send_capi_event(auth_token, channel_uuid, contact_urn)
 """
 
-from .client import OrderDataProxy, VTEXClient
+from .client import VTEXClient
 from .concierge import ProductConcierge
 from .context import SearchContext
 from .functions import get_sku_details, search_product_by_sku, search_products
-from .orders import OrderConcierge
+from .orders import OrderConcierge, OrderDataProxy
 from .plugins import (
     check_stock_availability,
     get_product_price,

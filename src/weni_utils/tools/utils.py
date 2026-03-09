@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 # Keys that represent currency values in cents (VTEX API)
 CURRENCY_KEYS = (
@@ -214,6 +214,22 @@ class Utils:
             )
 
         return variations
+
+    def format_vtex_account(self) -> str:
+        """
+        Extract the VTEX account name from the base URL.
+
+        E.g. "https://bravtexgrocerystore.myvtex.com" -> "bravtexgrocerystore"
+        """
+
+        base_url_vtex = self.base_url_vtex
+
+        if not base_url_vtex:
+            return None
+
+        parsed = urlparse(base_url_vtex)
+        hostname = parsed.hostname or base_url_vtex
+        return hostname.split(".")[0]
 
     @staticmethod
     def remove_fields_orders(order_details: Dict, fields_to_remove: List[str]) -> Dict:
