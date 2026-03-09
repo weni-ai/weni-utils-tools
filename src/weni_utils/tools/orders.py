@@ -20,8 +20,8 @@ class OrderConcierge:
 
     Example:
         concierge = OrderConcierge(
-            base_url="https://store.vtexcommercestable.com.br",
-            store_url="https://store.com.br"
+            base_url_vtex="https://store.vtexcommercestable.com.br",
+            store_url_vtex="https://store.com.br"
         )
 
         orders = concierge.search_orders("12345678900")
@@ -30,8 +30,8 @@ class OrderConcierge:
 
     def __init__(
         self,
-        base_url: str,
-        store_url: str,
+        base_url_vtex: str,
+        store_url_vtex: str,
         vtex_app_key: Optional[str] = None,
         vtex_app_token: Optional[str] = None,
     ):
@@ -39,14 +39,14 @@ class OrderConcierge:
         Initialize OrderConcierge.
 
         Args:
-            base_url: VTEX API base URL
-            store_url: Store URL
+            base_url_vtex: VTEX API base URL
+            store_url_vtex: Store URL
             vtex_app_key: VTEX App Key (optional)
             vtex_app_token: VTEX App Token (optional)
         """
         self.client = VTEXClient(
-            base_url=base_url,
-            store_url=store_url,
+            base_url_vtex=base_url_vtex,
+            store_url_vtex=store_url_vtex,
             vtex_app_key=vtex_app_key,
             vtex_app_token=vtex_app_token,
         )

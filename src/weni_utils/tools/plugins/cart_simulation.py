@@ -25,7 +25,7 @@ class CartSimulation:
         from weni_utils.tools.plugins import CartSimulation
         from weni_utils.tools import VTEXClient
 
-        client = VTEXClient(base_url="...", store_url="...")
+        client = VTEXClient(base_url_vtex="...", store_url_vtex="...")
         cart = CartSimulation(client)
 
         # Simple simulation

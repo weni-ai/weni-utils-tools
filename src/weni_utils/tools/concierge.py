@@ -26,8 +26,8 @@ class ProductConcierge(VTEXClient, StockManager):
         from weni_utils.tools.plugins import Regionalization
 
         concierge = ProductConcierge(
-            base_url="https://loja.vtexcommercestable.com.br",
-            store_url="https://loja.com.br",
+            base_url_vtex="https://loja.vtexcommercestable.com.br",
+            store_url_vtex="https://loja.com.br",
             plugins=[Regionalization()]
         )
 
@@ -43,8 +43,8 @@ class ProductConcierge(VTEXClient, StockManager):
 
     def __init__(
         self,
-        base_url: str,
-        store_url: str,
+        base_url_vtex: str,
+        store_url_vtex: str,
         vtex_app_key: Optional[str] = None,
         vtex_app_token: Optional[str] = None,
         max_products: int = 20,
@@ -57,8 +57,8 @@ class ProductConcierge(VTEXClient, StockManager):
         Initializes ProductConcierge.
 
         Args:
-            base_url: VTEX API base URL
-            store_url: Store URL
+            base_url_vtex: VTEX API base URL
+            store_url_vtex: Store URL
             vtex_app_key: VTEX App Key (optional)
             vtex_app_token: VTEX App Token (optional)
             max_products: Maximum products to return
@@ -68,8 +68,8 @@ class ProductConcierge(VTEXClient, StockManager):
             priority_categories: Categories with special stock logic
         """
         super().__init__(
-            base_url=base_url,
-            store_url=store_url,
+            base_url_vtex=base_url_vtex,
+            store_url_vtex=store_url_vtex,
             vtex_app_key=vtex_app_key,
             vtex_app_token=vtex_app_token,
         )

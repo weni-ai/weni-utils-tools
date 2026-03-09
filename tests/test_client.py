@@ -10,7 +10,7 @@ VALID_STORE_URL = "https://test.com.br"
 
 
 def _make_client(**kwargs):
-    defaults = {"base_url": VALID_BASE_URL, "store_url": VALID_STORE_URL}
+    defaults = {"base_url_vtex": VALID_BASE_URL, "store_url_vtex": VALID_STORE_URL}
     defaults.update(kwargs)
     return VTEXClient(**defaults)
 
@@ -21,8 +21,8 @@ def _make_client(**kwargs):
 class TestVTEXClientInit:
     def test_init_basic(self):
         client = _make_client()
-        assert client.base_url == VALID_BASE_URL
-        assert client.store_url == VALID_STORE_URL
+        assert client.base_url_vtex == VALID_BASE_URL
+        assert client.store_url_vtex == VALID_STORE_URL
         assert client.vtex_app_key is None
         assert client.vtex_app_token is None
         assert client.timeout == 30
@@ -37,23 +37,23 @@ class TestVTEXClientInit:
             base_url=VALID_BASE_URL + "/",
             store_url=VALID_STORE_URL + "/",
         )
-        assert not client.base_url.endswith("/")
-        assert not client.store_url.endswith("/")
+        assert not client.base_url_vtex.endswith("/")
+        assert not client.store_url_vtex.endswith("/")
 
     def test_init_invalid_base_url_raises(self):
         with pytest.raises(ValueError):
-            _make_client(base_url="http://invalid.com")
+            _make_client(base_url_vtex="http://invalid.com")
 
     def test_init_empty_urls_raises(self):
         with pytest.raises(ValueError):
-            VTEXClient(base_url="", store_url="")
+            VTEXClient(base_url_vtex="", store_url_vtex="")
 
     def test_init_myvtex_domain(self):
         client = VTEXClient(
-            base_url="https://store.myvtex.com",
-            store_url=VALID_STORE_URL,
+            base_url_vtex="https://store.myvtex.com",
+            store_url_vtex=VALID_STORE_URL,
         )
-        assert client.base_url == "https://store.myvtex.com"
+        assert client.base_url_vtex == "https://store.myvtex.com"
 
 
 class TestAuthHeaders:
