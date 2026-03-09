@@ -27,8 +27,8 @@ class Carousel(PluginBase):
 
     Example:
         concierge = ProductConcierge(
-            base_url="...",
-            store_url="...",
+            base_url_vtex="...",
+            store_url_vtex="...",
             plugins=[
                 Carousel(
                     weni_token="your-token",

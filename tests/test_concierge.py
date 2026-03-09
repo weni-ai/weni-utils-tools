@@ -8,7 +8,7 @@ VALID_STORE_URL = "https://test.com.br"
 
 
 def _make_concierge(**kwargs):
-    defaults = {"base_url": VALID_BASE_URL, "store_url": VALID_STORE_URL}
+    defaults = {"base_url_vtex": VALID_BASE_URL, "store_url_vtex": VALID_STORE_URL}
     defaults.update(kwargs)
     return ProductConcierge(**defaults)
 

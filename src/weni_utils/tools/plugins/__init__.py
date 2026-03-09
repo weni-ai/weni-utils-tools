@@ -8,8 +8,8 @@ Usage:
     from weni_utils.tools.plugins import Regionalization, Carousel, CAPI
 
     concierge = ProductConcierge(
-        base_url="...",
-        store_url="...",
+        base_url_vtex="...",
+        store_url_vtex="...",
         plugins=[
             Regionalization(),
         ]

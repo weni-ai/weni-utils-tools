@@ -14,7 +14,7 @@ from .weni_flow import WeniFlowTrigger
 
 
 def simulate_cart(
-    base_url: str,
+    base_url_vtex: str,
     items: List[Dict],
     country: str = "BRA",
     postal_code: Optional[str] = None,
@@ -24,7 +24,7 @@ def simulate_cart(
     Perform cart simulation to check availability.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         items: List of items [{"id": "sku_id", "quantity": 1, "seller": "1"}]
         country: Country code (default: "BRA")
         postal_code: Postal code (optional)
@@ -35,7 +35,7 @@ def simulate_cart(
 
     Example:
         result = simulate_cart(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             items=[
                 {"id": "61556", "quantity": 1, "seller": "1"},
                 {"id": "82598", "quantity": 2, "seller": "1"}
@@ -43,13 +43,13 @@ def simulate_cart(
             postal_code="01310-100"
         )
     """
-    client = VTEXClient(base_url=base_url, store_url=base_url, timeout=timeout)
+    client = VTEXClient(base_url_vtex=base_url_vtex, store_url_vtex=base_url_vtex, timeout=timeout)
     cart = CartSimulation(client)
     return cart.simulate(items=items, country=country, postal_code=postal_code)
 
 
 def simulate_cart_batch(
-    base_url: str,
+    base_url_vtex: str,
     sku_id: str,
     sellers: List[str],
     postal_code: str,
@@ -62,7 +62,7 @@ def simulate_cart_batch(
     Simulate a specific SKU with multiple sellers (used for regionalization).
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         sku_id: SKU ID
         sellers: List of sellers
         postal_code: Postal code
@@ -76,14 +76,14 @@ def simulate_cart_batch(
 
     Example:
         result = simulate_cart_batch(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             sku_id="61556",
             sellers=["store1000", "store1003"],
             postal_code="01310-100",
             quantity=10
         )
     """
-    client = VTEXClient(base_url=base_url, store_url=base_url, timeout=timeout)
+    client = VTEXClient(base_url_vtex=base_url_vtex, store_url_vtex=base_url_vtex, timeout=timeout)
     cart = CartSimulation(client)
     return cart.simulate_batch(
         sku_id=sku_id,
@@ -96,7 +96,7 @@ def simulate_cart_batch(
 
 
 def check_stock_availability(
-    base_url: str,
+    base_url_vtex: str,
     sku_ids: List[str],
     seller: str = "1",
     quantity: int = 1,
@@ -108,7 +108,7 @@ def check_stock_availability(
     Check stock availability for a list of SKUs.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         sku_ids: List of SKU IDs
         seller: Seller ID (default: "1")
         quantity: Quantity to check (default: 1)
@@ -121,13 +121,13 @@ def check_stock_availability(
 
     Example:
         availability = check_stock_availability(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             sku_ids=["61556", "82598", "40240"],
             quantity=2
         )
         # {"61556": True, "82598": True, "40240": False}
     """
-    client = VTEXClient(base_url=base_url, store_url=base_url, timeout=timeout)
+    client = VTEXClient(base_url_vtex=base_url_vtex, store_url_vtex=base_url_vtex, timeout=timeout)
     cart = CartSimulation(client)
     return cart.check_stock_availability(
         sku_ids=sku_ids,
@@ -139,7 +139,7 @@ def check_stock_availability(
 
 
 def get_product_price(
-    base_url: str,
+    base_url_vtex: str,
     sku_id: str,
     seller_id: str = "1",
     quantity: int = 1,
@@ -150,7 +150,7 @@ def get_product_price(
     Get product price via cart simulation.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         sku_id: SKU ID
         seller_id: Seller ID (default: "1")
         quantity: Quantity (default: 1)
@@ -162,12 +162,12 @@ def get_product_price(
 
     Example:
         price = get_product_price(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             sku_id="61556"
         )
         # {"price": 198.90, "list_price": 249.90}
     """
-    client = VTEXClient(base_url=base_url, store_url=base_url, timeout=timeout)
+    client = VTEXClient(base_url_vtex=base_url_vtex, store_url_vtex=base_url_vtex, timeout=timeout)
     cart = CartSimulation(client)
     return cart.get_product_price(
         sku_id=sku_id, seller_id=seller_id, quantity=quantity, country=country
@@ -252,7 +252,7 @@ def trigger_weni_flow(
 
 
 def get_region(
-    base_url: str,
+    base_url_vtex: str,
     postal_code: str,
     country: str = "BRA",
     sales_channel: int = 1,
@@ -262,7 +262,7 @@ def get_region(
     Query the regionalization API to get region and sellers.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         postal_code: Postal code (format: 00000-000 or 00000000)
         country: Country code (default: "BRA")
         sales_channel: Sales channel (default: 1)
@@ -273,7 +273,7 @@ def get_region(
 
     Example:
         region_id, error, sellers = get_region(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             postal_code="01310-100"
         )
 
@@ -282,7 +282,7 @@ def get_region(
         else:
             print(f"Region: {region_id}, Sellers: {sellers}")
     """
-    client = VTEXClient(base_url=base_url, store_url=base_url, timeout=timeout)
+    client = VTEXClient(base_url_vtex=base_url_vtex, store_url_vtex=base_url_vtex, timeout=timeout)
     region_id, error_message, sellers = client.get_region(
         postal_code=postal_code, trade_policy=sales_channel, country_code=country
     )
@@ -291,7 +291,7 @@ def get_region(
 
 
 def get_sellers_by_region(
-    base_url: str,
+    base_url_vtex: str,
     postal_code: str,
     country: str = "BRA",
     sales_channel: int = 1,
@@ -301,7 +301,7 @@ def get_sellers_by_region(
     Return only the list of sellers for a region.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         postal_code: Postal code
         country: Country code (default: "BRA")
         sales_channel: Sales channel (default: 1)
@@ -312,12 +312,12 @@ def get_sellers_by_region(
 
     Example:
         sellers = get_sellers_by_region(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             postal_code="01310-100"
         )
         # ['store1000', 'store1003', 'store1500']
     """
     _, _, sellers = get_region(
-        base_url, postal_code, country, sales_channel=sales_channel, timeout=timeout
+        base_url_vtex, postal_code, country, sales_channel=sales_channel, timeout=timeout
     )
     return sellers

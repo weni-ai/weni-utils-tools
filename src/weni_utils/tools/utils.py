@@ -159,7 +159,7 @@ class Utils:
             limited_variations = variations[:max_variations]
 
             # Build product link
-            product_link = f"{self.store_url}{product.get('link', '')}"
+            product_link = f"{self.store_url_vtex}{product.get('link', '')}"
             if utm_source:
                 product_link += f"?utm_source={utm_source}"
 

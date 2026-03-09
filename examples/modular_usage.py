@@ -29,7 +29,7 @@ def simple_search_example():
     print("=" * 60)
 
     products = search_products(
-        base_url=BASE_URL, product_name="azeite", max_products=3, max_variations=2, timeout=15
+        base_url_vtex=BASE_URL, product_name="azeite", max_products=3, max_variations=2, timeout=15
     )
 
     print(f"\n✅ Found {len(products)} products")
@@ -45,7 +45,7 @@ def brand_search_example():
     print("EXAMPLE 2: Search with Brand")
     print("=" * 60)
 
-    products = search_products(base_url=BASE_URL, product_name="azeite", max_products=5)
+    products = search_products(base_url_vtex=BASE_URL, product_name="azeite", max_products=5)
 
     print(f"\n✅ Found {len(products)} Bosch products")
     for name in products.keys():
@@ -63,7 +63,7 @@ def regionalization_example():
     POSTAL_CODE = "01310-100"
 
     region_id, error, sellers = get_region(
-        base_url=BASE_URL, postal_code=POSTAL_CODE, country="BRA"
+        base_url_vtex=BASE_URL, postal_code=POSTAL_CODE, country="BRA"
     )
 
     if error:
@@ -87,7 +87,7 @@ def regionalized_search_example():
     POSTAL_CODE = "01310-100"
 
     # Step 1: Get region
-    region_id, error, sellers = get_region(BASE_URL, POSTAL_CODE)
+    region_id, error, sellers = get_region(base_url_vtex=BASE_URL, postal_code=POSTAL_CODE)
 
     if error:
         print(f"⚠️ {error}")
@@ -97,7 +97,7 @@ def regionalized_search_example():
 
     # Step 2: Search products with the region
     products = search_products(
-        base_url=BASE_URL, product_name="azeite", region_id=region_id, max_products=3
+        base_url_vtex=BASE_URL, product_name="azeite", region_id=region_id, max_products=3
     )
 
     print(f"2. Products found: {len(products)}")
@@ -116,7 +116,9 @@ def cart_simulation_example():
         {"id": "82598", "quantity": 2, "seller": "1"},
     ]
 
-    result = simulate_cart(base_url=BASE_URL, items=items, country="BRA", postal_code="01310-100")
+    result = simulate_cart(
+        base_url_vtex=BASE_URL, items=items, country="BRA", postal_code="01310-100"
+    )
 
     print("\n✅ Simulation result:")
     for item in result.get("items", []):
@@ -134,7 +136,7 @@ def stock_check_example():
     sku_ids = ["61556", "82598", "40240"]
 
     availability = check_stock_availability(
-        base_url=BASE_URL, sku_ids=sku_ids, quantity=1, seller="1"
+        base_url_vtex=BASE_URL, sku_ids=sku_ids, quantity=1, seller="1"
     )
 
     print("\n✅ Availability:")
@@ -151,7 +153,9 @@ def product_price_example():
     print("EXAMPLE 7: Product Price")
     print("=" * 60)
 
-    price_info = get_product_price(base_url=BASE_URL, sku_id="61556", seller_id="1", quantity=1)
+    price_info = get_product_price(
+        base_url_vtex=BASE_URL, sku_id="61556", seller_id="1", quantity=1
+    )
 
     print(f"\n✅ Price: R$ {price_info.get('price', 'N/A')}")
     print(f"✅ Original price: R$ {price_info.get('list_price', 'N/A')}")
@@ -171,12 +175,12 @@ def full_composition_example():
     print(f"\n🔍 Searching '{PRODUCT}' for postal code {POSTAL_CODE}...")
 
     # 1. Get region
-    region_id, error, sellers = get_region(BASE_URL, POSTAL_CODE)
+    region_id, error, sellers = get_region(base_url_vtex=BASE_URL, postal_code=POSTAL_CODE)
     print(f"1. Region: {region_id or error}")
 
     # 2. Search products
     products = search_products(
-        base_url=BASE_URL, product_name=PRODUCT, region_id=region_id, max_products=5
+        base_url_vtex=BASE_URL, product_name=PRODUCT, region_id=region_id, max_products=5
     )
     print(f"2. Products found: {len(products)}")
 
@@ -188,7 +192,9 @@ def full_composition_example():
 
     # 4. Check availability
     if sku_ids:
-        availability = check_stock_availability(base_url=BASE_URL, sku_ids=sku_ids[:10], quantity=1)
+        availability = check_stock_availability(
+            base_url_vtex=BASE_URL, sku_ids=sku_ids[:10], quantity=1
+        )
         available_count = sum(1 for v in availability.values() if v)
         print(f"3. Available SKUs: {available_count}/{len(availability)}")
 

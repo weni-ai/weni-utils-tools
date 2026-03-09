@@ -37,20 +37,20 @@ from weni_utils.tools import search_products, get_region, simulate_cart
 
 # Search products
 products = search_products(
-    base_url="https://store.vtexcommercestable.com.br",
+    base_url_vtex="https://store.vtexcommercestable.com.br",
     product_name="drill",
     max_products=10
 )
 
 # Get region by postal code
 region_id, error, sellers = get_region(
-    base_url="https://store.vtexcommercestable.com.br",
+    base_url_vtex="https://store.vtexcommercestable.com.br",
     postal_code="01310-100"
 )
 
 # Simulate cart
 result = simulate_cart(
-    base_url="https://store.vtexcommercestable.com.br",
+    base_url_vtex="https://store.vtexcommercestable.com.br",
     items=[{"id": "61556", "quantity": 1, "seller": "1"}],
     postal_code="01310-100"
 )
@@ -62,8 +62,8 @@ result = simulate_cart(
 from weni_utils.tools import ProductConcierge
 
 concierge = ProductConcierge(
-    base_url="https://store.vtexcommercestable.com.br",
-    store_url="https://store.com.br"
+    base_url_vtex="https://store.vtexcommercestable.com.br",
+    store_url_vtex="https://store.com.br"
 )
 
 result = concierge.search(product_name="drill")
@@ -79,8 +79,8 @@ from weni_utils.tools import ProductConcierge
 from weni_utils.tools.plugins import Regionalization
 
 concierge = ProductConcierge(
-    base_url="...",
-    store_url="...",
+    base_url_vtex="...",
+    store_url_vtex="...",
     plugins=[
         Regionalization()
     ]
@@ -180,19 +180,19 @@ from weni_utils.tools.plugins import PluginBase
 
 class MyPlugin(PluginBase):
     name = "my_plugin"
-    
+
     def before_search(self, context, client):
         # Modify context before search
         return context
-    
+
     def after_search(self, products, context, client):
         # Modify products after search
         return products
-    
+
     def after_stock_check(self, products_with_stock, context, client):
         # Enrich products after stock check
         return products_with_stock
-    
+
     def finalize_result(self, result, context):
         # Final modification before return
         return result

@@ -18,14 +18,14 @@ from .client import VTEXClient
 
 
 def search_products(
-    base_url: str,
+    base_url_vtex: str,
     product_name: str,
     brand_name: str = "",
     color: Optional[str] = None,
     region_id: Optional[str] = None,
     trade_policy_id: Optional[int] = None,
     cluster_id: Optional[int] = None,
-    store_url: Optional[str] = None,
+    store_url_vtex: Optional[str] = None,
     hide_unavailable: bool = True,
     max_products: int = 20,
     max_variations: int = 5,
@@ -37,14 +37,14 @@ def search_products(
     Search products using VTEX Intelligent Search API.
 
     Args:
-        base_url: VTEX API base URL (e.g., https://store.vtexcommercestable.com.br)
+        base_url_vtex: VTEX API base URL (e.g., https://store.vtexcommercestable.com.br)
         product_name: Product name to search
         brand_name: Product brand (optional)
         color: Product color (optional)
         region_id: Region ID for regionalization (optional)
         trade_policy_id: Trade policy / sales channel ID to filter products (optional)
         cluster_id: Filter the search by collection, following the format (optional)
-        store_url: Store URL for product links (optional, uses base_url if not provided)
+        store_url_vtex: Store URL for product links (optional, uses base_url_vtex if not provided)
         hide_unavailable: Whether to hide unavailable products (default: True)
         max_products: Maximum number of products (default: 20)
         max_variations: Maximum variations per product (default: 5)
@@ -57,24 +57,24 @@ def search_products(
 
     Example:
         products = search_products(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             product_name="drill",
             max_products=10
         )
 
         # With trade policy (sales channel)
         products = search_products(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             product_name="drill",
             trade_policy_id=2
         )
     """
-    store_url = store_url or base_url
+    store_url_vtex = store_url_vtex or base_url_vtex
 
     # Create client instance
     client = VTEXClient(
-        base_url=base_url,
-        store_url=store_url,
+        base_url_vtex=base_url_vtex,
+        store_url_vtex=store_url_vtex,
         timeout=timeout,
     )
 
@@ -106,24 +106,24 @@ def search_products(
 
 
 def search_product_by_sku(
-    base_url: str,
+    base_url_vtex: str,
     sku_id: str,
     region_id: Optional[str] = None,
     trade_policy_id: Optional[int] = None,
     cluster_id: Optional[int] = None,
-    store_url: Optional[str] = None,
+    store_url_vtex: Optional[str] = None,
     timeout: int = 30,
 ) -> Optional[Dict]:
     """
     Search for a specific product by SKU ID.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         sku_id: SKU ID
         region_id: Region ID for regionalization (optional)
         trade_policy_id: Trade policy / sales channel ID to filter products (optional)
         cluster_id: Filter the search by collection (optional)
-        store_url: Store URL (optional)
+        store_url_vtex: Store URL (optional)
         timeout: Request timeout (default: 30)
 
     Returns:
@@ -131,23 +131,23 @@ def search_product_by_sku(
 
     Example:
         product = search_product_by_sku(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             sku_id="61556"
         )
 
         # With trade policy
         product = search_product_by_sku(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             sku_id="61556",
             trade_policy_id=2
         )
     """
-    store_url = store_url or base_url
+    store_url_vtex = store_url_vtex or base_url_vtex
 
     # Create client instance
     client = VTEXClient(
-        base_url=base_url,
-        store_url=store_url,
+        base_url_vtex=base_url_vtex,
+        store_url_vtex=store_url_vtex,
         timeout=timeout,
     )
 
@@ -195,7 +195,7 @@ def normalize_field_name(field_path: str) -> str:
 
 
 def get_sku_details(
-    base_url: str,
+    base_url_vtex: str,
     sku_id: str,
     vtex_app_key: Optional[str] = None,
     vtex_app_token: Optional[str] = None,
@@ -206,7 +206,7 @@ def get_sku_details(
     Requires VTEX credentials for private API.
 
     Args:
-        base_url: VTEX API base URL
+        base_url_vtex: VTEX API base URL
         sku_id: SKU ID
         vtex_app_key: VTEX App Key (optional, required for complete data)
         vtex_app_token: VTEX App Token (optional, required for complete data)
@@ -217,7 +217,7 @@ def get_sku_details(
 
     Example:
         details = get_sku_details(
-            base_url="https://www.store.com.br",
+            base_url_vtex="https://www.store.com.br",
             sku_id="61556",
             vtex_app_key="your-app-key",
             vtex_app_token="your-app-token"
@@ -225,8 +225,8 @@ def get_sku_details(
     """
     # Create client instance with credentials
     client = VTEXClient(
-        base_url=base_url,
-        store_url=base_url,  # store_url not needed for this call
+        base_url_vtex=base_url_vtex,
+        store_url_vtex=base_url_vtex,  # store_url_vtex  not needed for this call
         vtex_app_key=vtex_app_key,
         vtex_app_token=vtex_app_token,
         timeout=timeout,
