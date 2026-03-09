@@ -152,6 +152,74 @@ class Utils:
 
         return variations
 
+    @staticmethod
+    def remove_fields_orders(order_details: Dict, fields_to_remove: List[str]) -> Dict:
+        """Remove fields from order details.
+
+        Supports both order list (orders.list[]) and single order (order) structures.
+
+        Field formats:
+        - Simple name (e.g. "hostname"): removed recursively from all nested dicts.
+        - Dot notation (e.g. "paymentData.transactions.0.merchantName"):
+          navigates the path and removes the last key.
+        """
+
+        def _remove_recursive(data, key: str):
+            """Remove a key from all nested dicts/lists."""
+            if isinstance(data, dict):
+                data.pop(key, None)
+                for v in data.values():
+                    _remove_recursive(v, key)
+            elif isinstance(data, list):
+                for item in data:
+                    _remove_recursive(item, key)
+
+        def _remove_by_path(data, path: str):
+            """Navigate a dot-notation path and remove the final key."""
+            parts = path.split(".")
+            current = data
+            for part in parts[:-1]:
+                if isinstance(current, dict):
+                    current = current.get(part)
+                elif isinstance(current, list):
+                    try:
+                        current = current[int(part)]
+                    except (ValueError, IndexError):
+                        return
+                else:
+                    return
+                if current is None:
+                    return
+            last = parts[-1]
+            if isinstance(current, dict):
+                current.pop(last, None)
+
+        targets = []
+        if "orders" in order_details and isinstance(order_details["orders"], dict):
+            orders_dict = order_details["orders"]
+            targets = orders_dict.get("list", [])
+            targets_root = [order_details, orders_dict]
+        elif "order" in order_details and isinstance(order_details["order"], dict):
+            targets = [order_details["order"]]
+            targets_root = [order_details]
+        else:
+            targets = []
+            targets_root = [order_details]
+
+        for field in fields_to_remove:
+            if "." in field:
+                for t in targets_root:
+                    _remove_by_path(t, field)
+                for order in targets:
+                    _remove_by_path(order, field)
+            else:
+                for t in targets_root:
+                    t.pop(field, None)
+                for order in targets:
+                    _remove_recursive(order, field)
+
+        return order_details
+
     def _get_first_image(self, images: List[Dict]) -> str:
         """Get the first valid image URL from a list of images."""
         if not images or not isinstance(images, list):
