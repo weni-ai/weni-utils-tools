@@ -69,7 +69,7 @@ class VTEXClient(ProxyRequest, Utils):
     def __init__(
         self,
         base_url: str,
-        store_url: str,
+        store_url: Optional[str] = None,
         vtex_app_key: Optional[str] = None,
         vtex_app_token: Optional[str] = None,
         timeout: int = 30,
@@ -79,13 +79,13 @@ class VTEXClient(ProxyRequest, Utils):
 
         Args:
             base_url: VTEX API base URL (e.g., https://store.vtexcommercestable.com.br)
-            store_url: Store URL (e.g., https://store.com.br)
+            store_url: Store URL (e.g., https://store.com.br) (optional)
             vtex_app_key: App Key for authenticated APIs (optional)
             vtex_app_token: App Token for authenticated APIs (optional)
             timeout: Request timeout in seconds
         """
         self.base_url = base_url.rstrip("/")
-        self.store_url = store_url.rstrip("/")
+        self.store_url = store_url.rstrip("/") if store_url else None
         if not self._validate_base_url_and_store_url():
             raise ValueError("Base URL or store URL is invalid")
 
@@ -108,13 +108,16 @@ class VTEXClient(ProxyRequest, Utils):
 
     def _validate_base_url_and_store_url(self) -> bool:
         """Validate if the base URL and store URL are valid"""
-        if not self.base_url or not self.store_url:
+        if not self.base_url:
             return False
 
-        if not self.base_url.startswith("https://") or not self.store_url.startswith("https://"):
+        if not self.base_url.startswith("https://"):
             return False
 
         if not self.base_url.endswith((".vtexcommercestable.com.br", "myvtex.com")):
+            return False
+
+        if self.store_url and not self.store_url.startswith("https://"):
             return False
 
         return True
@@ -697,6 +700,21 @@ class VTEXClient(ProxyRequest, Utils):
                 return None
 
         return current
+
+    def get_store_details(self) -> Dict:
+        """
+        Get store details from the VTEX API.
+        """
+
+        vtex_account = self.format_vtex_account()
+        url = f"https://api.vtexcommercestable.com.br/api/catalog_system/pub/saleschannel/default?an={vtex_account}"
+        try:
+            response = requests.get(url, headers=self._get_auth_headers(), timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Error getting store details: {e}")
+            return None
 
 
 class OrderDataProxy(Context):
