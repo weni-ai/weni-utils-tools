@@ -2,11 +2,13 @@
 ProxyRequest - Class for making proxy requests to the VTEX API.
 """
 
+import logging
 from typing import Any, Dict, Optional
 
 import requests
 from weni.context import Context
 
+logger = logging.getLogger(__name__)
 RETAIL_URL = "https://retailsetup.weni.ai"
 
 
@@ -129,3 +131,47 @@ class ProxyRequest(Context):
             body_request["headers"] = headers
 
         return body_request
+
+    def get_vtex_account(self, timeout: int = 30) -> str:
+        """
+        Get the VTEX account name from the Retail Setup API.
+
+        Returns:
+            The VTEX account name string.
+
+        Raises:
+            ValueError: If auth_token is missing or the response has no vtexAccount.
+            requests.exceptions.HTTPError: If the API returns an error status.
+            requests.exceptions.RequestException: For network/connection failures.
+        """
+        jwt_token = self.project.get("auth_token")
+        if not jwt_token:
+            raise ValueError("auth_token not found in context.project")
+
+        url = f"{RETAIL_URL}/api/projects/vtex-account"
+
+        headers = {
+            "Authorization": f"Bearer {jwt_token}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            logger.error(
+                "Failed to fetch VTEX account: HTTP %s - %s",
+                response.status_code,
+                response.text,
+            )
+            raise
+        except requests.exceptions.RequestException as e:
+            logger.error("Request to VTEX account endpoint failed: %s", e)
+            raise
+
+        vtex_account = response.json().get("vtex_account")
+        if not vtex_account:
+            logger.error("vtex_account not found in response: %s", response.text)
+            raise ValueError("vtex_account not found in API response")
+
+        return vtex_account

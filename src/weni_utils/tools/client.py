@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import requests
-from weni.context import Context
 
 from .proxy import ProxyRequest
 from .utils import Utils
@@ -117,6 +116,9 @@ class VTEXClient(ProxyRequest, Utils):
             return False
 
         if not self.base_url_vtex.endswith((".vtexcommercestable.com.br", "myvtex.com")):
+            return False
+
+        if self.store_url_vtex and not self.store_url_vtex.startswith("https://"):
             return False
 
         return True
@@ -700,57 +702,17 @@ class VTEXClient(ProxyRequest, Utils):
 
         return current
 
-
-class OrderDataProxy(Context):
-    """
-    Proxy for order requests using VTEX API. Receives the same Context
-    the platform injects (parameters, credentials, project, etc.).
-    """
-
-    def __init__(self, context: Context):
-        super().__init__(
-            parameters=context.parameters,
-            globals=getattr(context, "globals", {}),
-            contact=context.contact,
-            project=context.project,
-            constants=getattr(context, "constants", {}),
-            credentials=context.credentials,
-        )
-
-    def get_order_details_proxy(
-        self,
-        order_id: Optional[str] = None,
-        document: Optional[str | int] = None,
-        email: Optional[str] = None,
-        per_page: Optional[int] = 10,
-        seller_name: Optional[str] = None,
-        sales_channel: Optional[int] = None,
-    ) -> Dict:
+    def get_store_details(self) -> Dict:
         """
-        Get order details from the VTEX API via proxy.
-
-        Args:
-            order_id: Order ID (optional).
-            document: Document (optional).
-            email: Email (optional).
-            per_page: Number of items per page (optional).
-            seller_name: Seller name (optional).
-            sales_channel: Sales channel (optional).
-
-        One of order_id, document or email must be provided.
-
-        Returns:
-            Dictionary with order details or error.
+        Get store details from the VTEX API.
         """
-        proxy = ProxyRequest(self)
-        path = Utils.create_path_order_id(
-            order_id=order_id,
-            document=document,
-            email=email,
-            per_page=per_page,
-            seller_name=seller_name,
-            sales_channel=sales_channel,
-        )
-        if not path:
-            return {"error": "One of the arguments must be provided."}
-        return proxy.make_proxy_request(path=path, method="GET")
+
+        vtex_account = self.format_vtex_account()
+        url = f"https://api.vtexcommercestable.com.br/api/catalog_system/pub/saleschannel/default?an={vtex_account}"
+        try:
+            response = requests.get(url, headers=self._get_auth_headers(), timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Error getting store details: {e}")
+            return None
