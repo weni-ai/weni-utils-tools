@@ -214,7 +214,9 @@ class Carousel(PluginBase):
             carousel_items.append(carousel_item)
 
         xml_content = """<?xml version="1.0" encoding="UTF-8" ?>
-""" + "\n".join(carousel_items)
+""" + "\n".join(
+            carousel_items
+        )
 
         return xml_content
 
