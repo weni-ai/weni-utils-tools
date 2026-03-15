@@ -34,8 +34,8 @@ class TestVTEXClientInit:
 
     def test_init_strips_trailing_slash(self):
         client = _make_client(
-            base_url=VALID_BASE_URL + "/",
-            store_url=VALID_STORE_URL + "/",
+            base_url_vtex=VALID_BASE_URL + "/",
+            store_url_vtex=VALID_STORE_URL + "/",
         )
         assert not client.base_url_vtex.endswith("/")
         assert not client.store_url_vtex.endswith("/")
