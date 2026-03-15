@@ -50,7 +50,7 @@ class ProductConcierge(VTEXClient, StockManager):
         max_products: int = 20,
         max_variations: int = 5,
         max_payload_kb: int = 20,
-        utm_source: Optional[str] = None,
+        utm_source: Optional[str] = "weni_concierge",
         priority_categories: Optional[List[str]] = None,
     ):
         """
@@ -147,19 +147,8 @@ class ProductConcierge(VTEXClient, StockManager):
             utm_source=self.utm_source,
         )
 
-        # 4. Check stock availability with sellers
-        products_with_stock = self.check_availability_with_sellers(
-            client=self,
-            products=products,
-            context=context,
-            priority_categories=self.priority_categories,
-        )
-
-        # 5. Filter products, keeping only those with stock
-        filtered_products = self.filter_products_with_stock(products, products_with_stock)
-
-        # 6. Limit payload size
-        filtered_products = self.limit_payload_size(filtered_products, self.max_payload_kb)
+        # 4. Limit payload size
+        filtered_products = self.limit_payload_size(products, self.max_payload_kb)
 
         return filtered_products
 

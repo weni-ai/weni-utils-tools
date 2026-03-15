@@ -175,6 +175,129 @@ class TestHelperMethods:
         assert prices["pix_price"] is None
         assert prices["credit_card_price"] is None
 
+    # --- PIX price: substring matching ---
+
+    @pytest.mark.parametrize(
+        "payment_name",
+        ["Pix", "pix", "PIX", "Pix à vista", "Pix Itaú", "Pix Banco do Brasil"],
+    )
+    def test_extract_pix_price_variations(self, client, payment_name):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": payment_name, "Value": 90.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["pix_price"] == 90.0
+
+    def test_extract_pix_price_picks_first_match(self, client):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": "Pix à vista", "Value": 88.0},
+                    {"PaymentSystemName": "Pix Itaú", "Value": 85.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["pix_price"] == 88.0
+
+    def test_extract_pix_price_no_match(self, client):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": "Boleto", "Value": 95.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["pix_price"] is None
+
+    # --- Credit card price: substring matching ---
+
+    @pytest.mark.parametrize(
+        "payment_name",
+        [
+            "Visa",
+            "Visa à vista",
+            "Visa Crédito",
+            "Mastercard",
+            "Mastercard Débito",
+            "American Express",
+            "American Express Gold",
+        ],
+    )
+    def test_extract_credit_card_price_variations(self, client, payment_name):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": payment_name, "NumberOfInstallments": 1, "Value": 100.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["credit_card_price"] == 100.0
+
+    def test_extract_credit_card_ignores_installments(self, client):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": "Visa à vista", "NumberOfInstallments": 3, "Value": 35.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["credit_card_price"] is None
+
+    def test_extract_credit_card_picks_first_single_installment(self, client):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": "Visa Crédito", "NumberOfInstallments": 6, "Value": 18.0},
+                    {"PaymentSystemName": "Mastercard Débito", "NumberOfInstallments": 1, "Value": 99.0},
+                    {"PaymentSystemName": "Visa à vista", "NumberOfInstallments": 1, "Value": 100.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["credit_card_price"] == 99.0
+
+    # --- None-safety for PaymentSystemName ---
+
+    def test_extract_prices_none_payment_system_name(self, client):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"PaymentSystemName": None, "Value": 90.0},
+                    {"PaymentSystemName": "Pix", "Value": 85.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["pix_price"] == 85.0
+
+    def test_extract_prices_missing_payment_system_name(self, client):
+        seller = {
+            "commertialOffer": {
+                "Price": 100.0,
+                "Installments": [
+                    {"Value": 90.0},
+                ],
+            }
+        }
+        prices = client._extract_prices_from_seller(seller)
+        assert prices["pix_price"] is None
+        assert prices["credit_card_price"] is None
+
     def test_get_first_image(self, client):
         images = [{"imageUrl": "https://img.com/a.jpg?v=1"}]
         assert client._get_first_image(images) == "https://img.com/a.jpg"
@@ -225,7 +348,7 @@ class TestProcessProducts:
         assert data["brand"] == "Brand"
         assert len(data["variations"]) == 1
         assert data["variations"][0]["sku_id"] == "100"
-        assert data["variations"][0]["price"] == 50.0
+        assert data["variations"][0]["sellerId"] == "1"
         assert "utm_source=weni_concierge" in data["productLink"]
 
     def test_max_products_limit(self):
@@ -258,6 +381,26 @@ class TestProcessProducts:
         client = _make_client()
         result = client.process_products([self._raw_product()], utm_source=None)
         assert "utm_source" not in result["Product A"]["productLink"]
+
+    def test_utm_source_default(self):
+        client = _make_client()
+        result = client.process_products([self._raw_product()])
+        link = result["Product A"]["productLink"]
+        assert link.endswith("?utm_source=weni_concierge")
+
+    def test_utm_source_custom(self):
+        client = _make_client()
+        result = client.process_products([self._raw_product()], utm_source="my_campaign")
+        link = result["Product A"]["productLink"]
+        assert "?utm_source=my_campaign" in link
+        assert "weni_concierge" not in link
+
+    def test_utm_source_none_produces_clean_url(self):
+        client = _make_client()
+        result = client.process_products([self._raw_product()], utm_source=None)
+        link = result["Product A"]["productLink"]
+        assert link == f"{VALID_STORE_URL}/product-a"
+        assert "None" not in link
 
 
 # ---------------------------------------------------------------------------

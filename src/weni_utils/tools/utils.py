@@ -384,14 +384,14 @@ class Utils:
 
         # Search for PIX price
         for installment in installments:
-            if installment.get("PaymentSystemName") == "Pix":
+            if "pix" in (installment.get("PaymentSystemName") or "").lower():
                 prices["pix_price"] = installment.get("Value")
                 break
 
         # Search for credit card price (single payment)
         for installment in installments:
             if (
-                installment.get("PaymentSystemName") in ["Visa", "Mastercard", "American Express"]
+                any(card in (installment.get("PaymentSystemName") or "").lower() for card in ["visa", "mastercard", "american express"])
                 and installment.get("NumberOfInstallments") == 1
             ):
                 prices["credit_card_price"] = installment.get("Value")

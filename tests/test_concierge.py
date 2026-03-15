@@ -22,7 +22,7 @@ class TestProductConciergeInit:
         assert c.max_products == 20
         assert c.max_variations == 5
         assert c.max_payload_kb == 20
-        assert c.utm_source is None
+        assert c.utm_source == "weni_concierge"
         assert c.priority_categories == []
 
     def test_custom_config(self):
@@ -115,6 +115,86 @@ class TestProductConciergeSearch:
 
         result = _make_concierge().search(product_name="nonexistent")
         assert result == {}
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_default_utm_in_links(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        c = _make_concierge()
+        result = c.search(product_name="drill")
+        for product_data in result.values():
+            assert "?utm_source=weni_concierge" in product_data["productLink"]
+            assert "None" not in product_data["productLink"]
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_custom_utm_in_links(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        c = _make_concierge(utm_source="my_campaign")
+        result = c.search(product_name="drill")
+        for product_data in result.values():
+            assert "?utm_source=my_campaign" in product_data["productLink"]
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_none_utm_clean_links(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        c = _make_concierge(utm_source=None)
+        result = c.search(product_name="drill")
+        for product_data in result.values():
+            assert "utm_source" not in product_data["productLink"]
+            assert "None" not in product_data["productLink"]
 
     @patch("weni_utils.tools.client.requests.get")
     @patch("weni_utils.tools.client.requests.post")
