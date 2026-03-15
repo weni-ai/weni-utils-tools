@@ -188,9 +188,7 @@ class TestProcessProducts:
     def test_store_url_as_parameter(self):
         """The main change: store_url_vtex comes from the parameter, not self."""
         utils = Utils()
-        result = utils.process_products(
-            [self._raw_product()], store_url_vtex=self.STORE_URL
-        )
+        result = utils.process_products([self._raw_product()], store_url_vtex=self.STORE_URL)
         product = result["Product A"]
         assert product["productLink"].startswith(self.STORE_URL)
 
@@ -202,9 +200,7 @@ class TestProcessProducts:
 
     def test_default_utm_source_appended(self):
         utils = Utils()
-        result = utils.process_products(
-            [self._raw_product()], store_url_vtex=self.STORE_URL
-        )
+        result = utils.process_products([self._raw_product()], store_url_vtex=self.STORE_URL)
         assert "?utm_source=weni_concierge" in result["Product A"]["productLink"]
 
     def test_custom_utm_source(self):
@@ -226,9 +222,7 @@ class TestProcessProducts:
     def test_max_products_limit(self):
         utils = Utils()
         raw = [self._raw_product(name=f"P{i}", sku_id=str(i)) for i in range(10)]
-        result = utils.process_products(
-            raw, store_url_vtex=self.STORE_URL, max_products=3
-        )
+        result = utils.process_products(raw, store_url_vtex=self.STORE_URL, max_products=3)
         assert len(result) == 3
 
     def test_max_variations_limit(self):
@@ -254,9 +248,7 @@ class TestProcessProducts:
             for i in range(10)
         ]
         utils = Utils()
-        result = utils.process_products(
-            [product], store_url_vtex=self.STORE_URL, max_variations=2
-        )
+        result = utils.process_products([product], store_url_vtex=self.STORE_URL, max_variations=2)
         assert len(result["Product A"]["variations"]) == 2
 
     def test_skips_products_without_items(self):
@@ -277,9 +269,7 @@ class TestProcessProducts:
 
     def test_product_data_fields(self):
         utils = Utils()
-        result = utils.process_products(
-            [self._raw_product()], store_url_vtex=self.STORE_URL
-        )
+        result = utils.process_products([self._raw_product()], store_url_vtex=self.STORE_URL)
         product = result["Product A"]
         assert "variations" in product
         assert "description" in product
@@ -741,9 +731,7 @@ class TestFormatSpecifications:
                 ],
             }
         ]
-        result = self._utils()._format_specifications(
-            groups, remove_specifications=["sellerId"]
-        )
+        result = self._utils()._format_specifications(groups, remove_specifications=["sellerId"])
         assert "sellerId" not in result[0]["specifications"]
         assert "color" in result[0]["specifications"]
 
