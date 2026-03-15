@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "weni-utils-tools"
-version = "0.0.3"
+version = "0.0.3a1"
 description = "Modular tools library for AI agents on the Weni platform"
 readme = "README.md"
 license = "MIT"
