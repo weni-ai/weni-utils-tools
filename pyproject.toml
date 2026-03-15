@@ -3,11 +3,11 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "weni-tools-utils"
-version = "0.0.1"
+name = "weni-utils-tools"
+version = "0.0.2"
 description = "Modular tools library for AI agents on the Weni platform"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.10"
 authors = [
     {name = "Weni AI", email = "dev@weni.ai"}
@@ -29,7 +29,6 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -68,11 +67,11 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/weni-ai/tools-utils"
-Documentation = "https://github.com/weni-ai/tools-utils#readme"
-Repository = "https://github.com/weni-ai/tools-utils.git"
-Issues = "https://github.com/weni-ai/tools-utils/issues"
-Changelog = "https://github.com/weni-ai/tools-utils/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/weni-ai/weni-utils-tools"
+Documentation = "https://github.com/weni-ai/weni-utils-tools#readme"
+Repository = "https://github.com/weni-ai/weni-utils-tools.git"
+Issues = "https://github.com/weni-ai/weni-utils-tools/issues"
+Changelog = "https://github.com/weni-ai/weni-utils-tools/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
