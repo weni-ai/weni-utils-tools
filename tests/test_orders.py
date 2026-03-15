@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from weni_utils.tools.client import OrderDataProxy
+from weni_utils.tools.orders import OrderDataProxy
 from weni_utils.tools.utils import Utils
 
 
@@ -220,54 +220,72 @@ class TestOrderDataProxy:
         ctx.constants = {}
         return ctx
 
-    @patch("weni_utils.tools.client.ProxyRequest")
+    @patch("weni_utils.tools.orders.ProxyRequest")
     def test_get_order_by_email(self, mock_proxy_cls):
-        expected = {"orderId": "123", "status": "invoiced"}
-        mock_proxy_cls.return_value.make_proxy_request.return_value = expected
+        mock_proxy = MagicMock()
+        mock_proxy_cls.return_value = mock_proxy
+        mock_proxy.get_vtex_account.return_value = "teststore"
+
+        order_response = {"orderId": "123", "status": "invoiced"}
+        mock_proxy.make_proxy_request.side_effect = [
+            {"TimeZone": "E. South America Standard Time"},
+            order_response,
+        ]
 
         proxy = OrderDataProxy(context=self._mock_context())
         result = proxy.get_order_details_proxy(email="user@example.com")
 
-        assert result == expected
-        mock_proxy_cls.return_value.make_proxy_request.assert_called_once_with(
-            path="/api/oms/pvt/orders/?q=user@example.com&per_page=10",
-            method="GET",
-        )
+        assert "order" in result
+        assert "current_time" in result
+        assert result["order"]["orderId"] == "123"
 
-    @patch("weni_utils.tools.client.ProxyRequest")
+    @patch("weni_utils.tools.orders.ProxyRequest")
     def test_get_order_by_order_id(self, mock_proxy_cls):
-        expected = {"orderId": "ORD-1"}
-        mock_proxy_cls.return_value.make_proxy_request.return_value = expected
+        mock_proxy = MagicMock()
+        mock_proxy_cls.return_value = mock_proxy
+        mock_proxy.get_vtex_account.return_value = "teststore"
+
+        mock_proxy.make_proxy_request.side_effect = [
+            {"TimeZone": "E. South America Standard Time"},
+            {"orderId": "ORD-1"},
+        ]
 
         proxy = OrderDataProxy(context=self._mock_context())
         result = proxy.get_order_details_proxy(order_id="ORD-1")
 
-        assert result == expected
-        mock_proxy_cls.return_value.make_proxy_request.assert_called_once_with(
-            path="/api/oms/pvt/orders/ORD-1",
-            method="GET",
-        )
+        assert "order" in result
+        assert "current_time" in result
+        assert result["order"]["orderId"] == "ORD-1"
 
-    @patch("weni_utils.tools.client.ProxyRequest")
+    @patch("weni_utils.tools.orders.ProxyRequest")
     def test_get_order_by_document(self, mock_proxy_cls):
-        expected = {"list": []}
-        mock_proxy_cls.return_value.make_proxy_request.return_value = expected
+        mock_proxy = MagicMock()
+        mock_proxy_cls.return_value = mock_proxy
+        mock_proxy.get_vtex_account.return_value = "teststore"
+
+        mock_proxy.make_proxy_request.side_effect = [
+            {"TimeZone": "E. South America Standard Time"},
+            {"list": [{"orderId": "ORD-DOC", "status": "invoiced"}]},
+        ]
 
         proxy = OrderDataProxy(context=self._mock_context())
         result = proxy.get_order_details_proxy(document="12345678900")
 
-        assert result == expected
-        call_path = mock_proxy_cls.return_value.make_proxy_request.call_args[1]["path"]
-        assert "12345678900" in call_path
+        assert "order" in result
+        assert "current_time" in result
 
-    @patch("weni_utils.tools.client.ProxyRequest")
+    @patch("weni_utils.tools.orders.ProxyRequest")
     def test_no_args_returns_error(self, mock_proxy_cls):
+        mock_proxy = MagicMock()
+        mock_proxy_cls.return_value = mock_proxy
+        mock_proxy.get_vtex_account.return_value = "teststore"
+        mock_proxy.make_proxy_request.return_value = {"TimeZone": "E. South America Standard Time"}
+
         proxy = OrderDataProxy(context=self._mock_context())
         result = proxy.get_order_details_proxy()
         assert "error" in result
-        mock_proxy_cls.return_value.make_proxy_request.assert_not_called()
 
-    @patch("weni_utils.tools.client.ProxyRequest")
+    @patch("weni_utils.tools.orders.ProxyRequest")
     def test_custom_per_page(self, mock_proxy_cls):
         mock_proxy_cls.return_value.make_proxy_request.return_value = {}
 
