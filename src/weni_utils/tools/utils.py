@@ -1,5 +1,8 @@
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode, urlparse
+
+logger = logging.getLogger(__name__)
 
 # Keys that represent currency values in cents (VTEX API)
 CURRENCY_KEYS = (
@@ -93,10 +96,14 @@ class Utils:
             try:
                 segment_data = json.loads(vtex_segment_raw)
             except (json.JSONDecodeError, TypeError):
+                logger.warning("vtex_segment decode failed — invalid JSON string")
                 return None
         elif isinstance(vtex_segment_raw, dict):
             segment_data = vtex_segment_raw
         else:
+            logger.warning(
+                "vtex_segment ignored — unsupported type: %s", type(vtex_segment_raw).__name__
+            )
             return None
 
         if not isinstance(segment_data, dict) or not segment_data:

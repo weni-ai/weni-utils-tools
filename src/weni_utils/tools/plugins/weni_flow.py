@@ -5,11 +5,14 @@ Plugin for triggering flows on the Weni platform during product search.
 Useful for tracking, analytics or custom actions.
 """
 
+import logging
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import requests
 
 from .base import PluginBase
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     # from ..client import VTEXClient
@@ -132,14 +135,16 @@ class WeniFlowTrigger(PluginBase):
             )
 
             if response.status_code == 200:
-                print(f"WeniFlow: Flow {flow_uuid} triggered successfully")
+                logger.info("Flow %s triggered for contact %s", flow_uuid, contact_urn)
                 return True
             else:
-                print(f"WeniFlow: Failed to trigger flow: {response.status_code}")
+                logger.error(
+                    "Flow trigger failed: status=%d flow=%s", response.status_code, flow_uuid
+                )
                 return False
 
         except Exception as e:
-            print(f"WeniFlow: Error triggering flow: {e}")
+            logger.error("Flow trigger error for flow=%s: %s", flow_uuid, e)
             return False
 
     def reset(self) -> None:

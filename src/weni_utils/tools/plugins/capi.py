@@ -5,11 +5,14 @@ Plugin for sending conversion events to Meta (Facebook/Instagram).
 Integrates with Weni's conversions API.
 """
 
+import logging
 from typing import TYPE_CHECKING, Any, Dict
 
 import requests
 
 from .base import PluginBase
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     # from ..client import VTEXClient
@@ -131,11 +134,13 @@ class CAPI(PluginBase):
             True if sent successfully
         """
         if not all([auth_token, channel_uuid, contact_urn]):
-            print("CAPI: Missing required parameters")
+            logger.warning("CAPI event skipped — missing required parameters")
             return False
 
         if event_type not in self.VALID_EVENT_TYPES:
-            print(f"CAPI: Invalid event type: {event_type}")
+            logger.error(
+                "CAPI invalid event_type=%r (valid: %s)", event_type, self.VALID_EVENT_TYPES
+            )
             return False
 
         headers = {"Authorization": f"Bearer {auth_token}", "Content-Type": "application/json"}
@@ -152,14 +157,16 @@ class CAPI(PluginBase):
             )
 
             if response.status_code == 200:
-                print(f"CAPI: Event '{event_type}' sent successfully")
+                logger.info("CAPI event '%s' sent for contact %s", event_type, contact_urn)
                 return True
             else:
-                print(f"CAPI: Failed to send event: {response.status_code}")
+                logger.error(
+                    "CAPI event failed: status=%d event_type=%s", response.status_code, event_type
+                )
                 return False
 
         except Exception as e:
-            print(f"CAPI: Error sending event: {e}")
+            logger.error("CAPI event error for event_type=%s: %s", event_type, e)
             return False
 
     def send_purchase_event(self, context: "SearchContext") -> bool:

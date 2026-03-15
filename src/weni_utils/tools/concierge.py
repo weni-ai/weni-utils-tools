@@ -5,6 +5,7 @@ This is the main class that orchestrates the entire search flow,
 integrating the VTEX client, stock manager, and plugins.
 """
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from weni.context import Context
@@ -12,6 +13,8 @@ from weni.context import Context
 from .client import VTEXClient
 from .context import SearchContext
 from .stock import StockManager
+
+logger = logging.getLogger(__name__)
 
 
 class ProductConcierge(VTEXClient, StockManager):
@@ -191,6 +194,7 @@ class ProductConcierge(VTEXClient, StockManager):
 
         # Add region message if present
         if context.region_error:
+            logger.warning("Region error in result: %s", context.region_error)
             result["region_message"] = context.region_error
 
         # Add products

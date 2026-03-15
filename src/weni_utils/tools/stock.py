@@ -5,9 +5,12 @@ This module contains the logic to check product availability
 and filter results based on stock.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Set
 
 from .context import SearchContext
+
+logger = logging.getLogger(__name__)
 
 
 class StockManager:
@@ -104,6 +107,7 @@ class StockManager:
             List of products with available stock
         """
         if not products:
+            logger.debug("check_availability_simple: no products to check")
             return []
 
         # Convert to SKU list
@@ -147,6 +151,7 @@ class StockManager:
             List of products with available stock and seller information
         """
         if not products or not context.sellers:
+            logger.debug("No sellers provided, falling back to simple availability check")
             return self.check_availability_simple(client, products, context)
 
         products_details = self._flatten_products_to_skus(products)
@@ -180,6 +185,7 @@ class StockManager:
         )
 
         if not simulation_result:
+            logger.warning("Batch simulation returned no results for %d SKUs", len(skus))
             return []
 
         # Process results and enrich products

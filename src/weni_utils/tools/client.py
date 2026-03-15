@@ -6,6 +6,7 @@ extracted and consolidated from existing agents.
 """
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -13,6 +14,8 @@ import requests
 
 from .proxy import ProxyRequest
 from .utils import Utils
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -185,10 +188,10 @@ class VTEXClient(ProxyRequest, Utils):
             return data.get("products", [])
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Intelligent search error: {e}")
+            logger.error("Intelligent search failed for query=%r: %s", query, e)
             return []
         except json.JSONDecodeError as e:
-            print(f"ERROR: JSON processing error: {e}")
+            logger.error("Intelligent search JSON decode error for query=%r: %s", query, e)
             return []
 
     def cart_simulation(
@@ -224,7 +227,7 @@ class VTEXClient(ProxyRequest, Utils):
             return response.json()
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Cart simulation error: {e}")
+            logger.error("Cart simulation failed (%d items): %s", len(items), e)
             return {"items": []}
 
     def _build_batch_items(
@@ -318,6 +321,9 @@ class VTEXClient(ProxyRequest, Utils):
             regions_data = response.json()
 
             if not regions_data:
+                logger.warning(
+                    "No region found for postal_code=%s country=%s", postal_code, country_code
+                )
                 return (
                     None,
                     "We don't serve your region.",
@@ -328,6 +334,7 @@ class VTEXClient(ProxyRequest, Utils):
             sellers = region.get("sellers", [])
 
             if not sellers:
+                logger.warning("Region found but no sellers for postal_code=%s", postal_code)
                 return (
                     None,
                     "We don't serve your region.",
@@ -337,10 +344,16 @@ class VTEXClient(ProxyRequest, Utils):
             region_id = region.get("id")
             seller_ids = [seller.get("id") for seller in sellers]
 
+            logger.info(
+                "Region resolved: region_id=%s sellers=%d postal_code=%s",
+                region_id,
+                len(seller_ids),
+                postal_code,
+            )
             return region_id, None, seller_ids
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Regionalization error: {e}")
+            logger.error("Region lookup failed for postal_code=%s: %s", postal_code, e)
             return None, f"Error querying regionalization: {e}", []
 
     def get_sku_details(self, sku_id: str) -> Dict:
@@ -418,7 +431,7 @@ class VTEXClient(ProxyRequest, Utils):
             return products[0]
 
         except Exception as e:
-            print(f"ERROR: Error searching SKU {sku_id}: {e}")
+            logger.error("SKU lookup failed for sku_id=%s: %s", sku_id, e)
             return None
 
     def _fetch_orders(
@@ -471,7 +484,7 @@ class VTEXClient(ProxyRequest, Utils):
         # Fetch complete orders
         orders_data, error = self._fetch_orders(document, email, include_incomplete)
         if error:
-            print(f"ERROR: Error searching orders: {error}")
+            logger.error("Order search failed: %s", error)
             return {"error": f"Error searching orders: {error}", "list": []}
 
         if not include_incomplete:
@@ -480,7 +493,9 @@ class VTEXClient(ProxyRequest, Utils):
         # Fetch incomplete orders and merge
         incomplete_data, error = self._fetch_orders(document, include_incomplete=True)
         if error:
-            print(f"ERROR: Error searching incomplete orders: {error}")
+            logger.warning(
+                "Incomplete orders fetch failed, returning complete orders only: %s", error
+            )
             return orders_data
 
         # Merge avoiding duplicates by order ID
@@ -504,10 +519,10 @@ class VTEXClient(ProxyRequest, Utils):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Error creating order form: {e}")
+            logger.error("Order form creation failed: %s", e)
             return None
         except json.JSONDecodeError as e:
-            print(f"ERROR: JSON processing error: {e}")
+            logger.error("Order form JSON decode error: %s", e)
             return None
 
     def get_order_by_id(self, order_id: str) -> Optional[Dict]:
@@ -530,7 +545,7 @@ class VTEXClient(ProxyRequest, Utils):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Error searching order {order_id}: {e}")
+            logger.error("Order fetch failed for order_id=%s: %s", order_id, e)
             return None
 
     def process_products(
@@ -725,5 +740,5 @@ class VTEXClient(ProxyRequest, Utils):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: Error getting store details: {e}")
+            logger.error("Store details fetch failed: %s", e)
             return None

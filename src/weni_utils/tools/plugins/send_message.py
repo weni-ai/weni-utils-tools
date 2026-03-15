@@ -6,11 +6,14 @@ Supports sending text messages, templates, attachments, quick replies and footer
 """
 
 import json
+import logging
 from typing import Any, Dict, List, Optional, Union
 
 import requests
 
 from .base import PluginBase
+
+logger = logging.getLogger(__name__)
 
 
 class SendMessage(PluginBase):
@@ -390,9 +393,11 @@ class SendMessage(PluginBase):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
             response.raise_for_status()
+            logger.info("Broadcast sent to %s", payload.get("urns", ["?"])[0])
             return response.json()
 
         except requests.exceptions.Timeout:
+            logger.error("Broadcast timeout after %ds to %s", self.timeout, url)
             return {
                 "success": False,
                 "error": f"Timeout trying to connect to API after {self.timeout}s",
@@ -400,6 +405,7 @@ class SendMessage(PluginBase):
             }
 
         except requests.exceptions.HTTPError as http_err:
+            logger.error("Broadcast HTTP error: %s", http_err)
             status_code = None
             response_text = None
 
@@ -419,6 +425,7 @@ class SendMessage(PluginBase):
             }
 
         except requests.exceptions.RequestException as err:
+            logger.error("Broadcast request error: %s", err)
             return {
                 "success": False,
                 "error": f"Request error: {str(err)}",
@@ -426,6 +433,7 @@ class SendMessage(PluginBase):
             }
 
         except json.JSONDecodeError as json_err:
+            logger.error("Broadcast JSON decode error: %s", json_err)
             return {
                 "success": False,
                 "error": f"Error decoding JSON response: {str(json_err)}",
@@ -433,6 +441,7 @@ class SendMessage(PluginBase):
             }
 
         except Exception as ex:
+            logger.error("Broadcast unexpected error: %s", ex)
             return {
                 "success": False,
                 "error": f"Unexpected error: {str(ex)}",
