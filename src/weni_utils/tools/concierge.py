@@ -164,6 +164,7 @@ class ProductConcierge(VTEXClient, StockManager):
         # 5. Process raw products (format, filter, limit)
         products = self.process_products(
             raw_products=raw_products,
+            store_url_vtex=self.store_url_vtex,
             max_products=self.max_products,
             max_variations=self.max_variations,
             utm_source=self.utm_source,

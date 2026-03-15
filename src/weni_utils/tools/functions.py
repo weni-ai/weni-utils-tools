@@ -99,6 +99,7 @@ def search_products(
     # Process products (format, filter, limit)
     return client.process_products(
         raw_products=raw_products,
+        store_url_vtex=store_url_vtex,
         max_products=max_products,
         max_variations=max_variations,
         utm_source=utm_source,

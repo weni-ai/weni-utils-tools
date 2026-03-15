@@ -153,6 +153,7 @@ class Utils:
     def process_products(
         self,
         raw_products: List[Dict],
+        store_url_vtex: Optional[str] = None,
         max_products: int = 20,
         max_variations: int = 5,
         utm_source: Optional[str] = "weni_concierge",
@@ -209,7 +210,7 @@ class Utils:
             limited_variations = variations[:max_variations]
 
             # Build product link
-            product_link = f"{self.store_url_vtex}{product.get('link', '')}"
+            product_link = f"{store_url_vtex}{product.get('link', '')}"
             if utm_source:
                 product_link += f"?utm_source={utm_source}"
 

@@ -367,7 +367,7 @@ class TestProcessProducts:
 
     def test_basic_processing(self):
         client = _make_client()
-        result = client.process_products([self._raw_product()])
+        result = client.process_products([self._raw_product()], store_url_vtex=VALID_STORE_URL)
         assert "Product A" in result
         data = result["Product A"]
         assert data["brand"] == "Brand"
@@ -379,50 +379,60 @@ class TestProcessProducts:
     def test_max_products_limit(self):
         client = _make_client()
         raw = [self._raw_product(name=f"P{i}", sku_id=str(i)) for i in range(10)]
-        result = client.process_products(raw, max_products=3)
+        result = client.process_products(raw, store_url_vtex=VALID_STORE_URL, max_products=3)
         assert len(result) == 3
 
     def test_skips_products_without_items(self):
         client = _make_client()
         raw = [{"productName": "Empty", "items": []}]
-        assert client.process_products(raw) == {}
+        assert client.process_products(raw, store_url_vtex=VALID_STORE_URL) == {}
 
     def test_extra_fields(self):
         client = _make_client()
         raw = self._raw_product()
         raw["clusterHighlights"] = {"123": "Promo"}
-        result = client.process_products([raw], extra_product_fields=["clusterHighlights"])
+        result = client.process_products(
+            [raw], store_url_vtex=VALID_STORE_URL, extra_product_fields=["clusterHighlights"]
+        )
         assert result["Product A"]["clusterHighlights"] == {"123": "Promo"}
 
     def test_extra_fields_with_alias(self):
         client = _make_client()
         raw = self._raw_product()
         result = client.process_products(
-            [raw], extra_product_fields=[("items.0.itemId", "first_sku")]
+            [raw],
+            store_url_vtex=VALID_STORE_URL,
+            extra_product_fields=[("items.0.itemId", "first_sku")],
         )
         assert result["Product A"]["first_sku"] == "100"
 
     def test_utm_source_none(self):
         client = _make_client()
-        result = client.process_products([self._raw_product()], utm_source=None)
+        result = client.process_products(
+            [self._raw_product()], store_url_vtex=VALID_STORE_URL, utm_source=None
+        )
         assert "utm_source" not in result["Product A"]["productLink"]
 
     def test_utm_source_default(self):
         client = _make_client()
-        result = client.process_products([self._raw_product()])
+        result = client.process_products([self._raw_product()], store_url_vtex=VALID_STORE_URL)
         link = result["Product A"]["productLink"]
         assert link.endswith("?utm_source=weni_concierge")
 
     def test_utm_source_custom(self):
         client = _make_client()
-        result = client.process_products([self._raw_product()], utm_source="my_campaign")
+        result = client.process_products(
+            [self._raw_product()], store_url_vtex=VALID_STORE_URL, utm_source="my_campaign"
+        )
         link = result["Product A"]["productLink"]
         assert "?utm_source=my_campaign" in link
         assert "weni_concierge" not in link
 
     def test_utm_source_none_produces_clean_url(self):
         client = _make_client()
-        result = client.process_products([self._raw_product()], utm_source=None)
+        result = client.process_products(
+            [self._raw_product()], store_url_vtex=VALID_STORE_URL, utm_source=None
+        )
         link = result["Product A"]["productLink"]
         assert link == f"{VALID_STORE_URL}/product-a"
         assert "None" not in link
@@ -469,13 +479,17 @@ class TestProcessProducts:
 
     def test_process_products_default_picks_default_seller(self):
         client = _make_client()
-        result = client.process_products([self._raw_product_multi_seller()])
+        result = client.process_products(
+            [self._raw_product_multi_seller()], store_url_vtex=VALID_STORE_URL
+        )
         assert result["Multi Seller Product"]["variations"][0]["sellerId"] == "store"
 
     def test_process_products_no_prefer_picks_first_seller(self):
         client = _make_client()
         result = client.process_products(
-            [self._raw_product_multi_seller()], prefer_default_seller=False
+            [self._raw_product_multi_seller()],
+            store_url_vtex=VALID_STORE_URL,
+            prefer_default_seller=False,
         )
         assert result["Multi Seller Product"]["variations"][0]["sellerId"] == "marketplace"
 

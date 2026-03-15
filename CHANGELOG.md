@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.3] - 2026-03-15
+
+### Fixed
+- Decoupled `process_products` from instance state by receiving `store_url_vtex` as an explicit parameter instead of reading from `self`, making it usable outside `VTEXClient` subclasses
+
+### Added
+- Comprehensive unit tests for `Utils` (87 tests covering `convert_cents`, `encode_vtex_segment`, `process_products`, seller selection, price extraction, image helpers, specifications formatting, and more)
+
 ## [0.0.2] - 2026-03-14
 
 ### Fixed
