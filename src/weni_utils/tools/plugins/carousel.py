@@ -319,7 +319,7 @@ class Carousel(PluginBase):
                     "image": image_url,
                     "price": price,
                     "list_price": list_price,
-                    "product_link": f"{client.store_url}{product_link}?skuId={sku_id}",
+                    "product_link": f"{client.store_url_vtex}{product_link}?skuId={sku_id}",
                 }
             )
 
