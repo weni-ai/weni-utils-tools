@@ -2,7 +2,7 @@
 include LICENSE
 include README.md
 include CHANGELOG.md
-include py.typed
+include src/weni_utils/tools/py.typed
 
 # Include source files
 recursive-include src *.py

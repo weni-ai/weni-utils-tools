@@ -5,11 +5,11 @@ Modular tools library for AI agents on the Weni platform.
 ## 📦 Installation
 
 ```bash
-pip install weni-tools-utils
+pip install weni-utils-tools
 ```
 
-> **Note**: The package name on PyPI is `weni-tools-utils` (with hyphens), and you import it as `weni_utils.tools`:
-> - Install: `pip install weni-tools-utils`
+> **Note**: The package name on PyPI is `weni-utils-tools` (with hyphens), and you import it as `weni_utils.tools`:
+> - Install: `pip install weni-utils-tools`
 > - Import: `from weni_utils.tools import ...`
 
 ## 🎯 Problem Solved
