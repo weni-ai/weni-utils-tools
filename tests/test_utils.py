@@ -1,6 +1,4 @@
-import pytest
-
-from weni_utils.tools.utils import CURRENCY_KEYS, Utils, convert_cents
+from weni_utils.tools.utils import Utils, convert_cents
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +80,8 @@ class TestEncodeVtexSegment:
     def test_dict_input(self):
         result = Utils.encode_vtex_segment({"channel": "1", "regionId": "v2.ABC"})
         assert result is not None
-        import base64, json
+        import base64
+        import json
 
         decoded = json.loads(base64.b64decode(result))
         assert decoded["channel"] == "1"
