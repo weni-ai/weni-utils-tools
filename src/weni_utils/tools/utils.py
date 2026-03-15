@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 CURRENCY_KEYS = (
     "totalValue",
     "value",
-    "totals",
     "itemPrice",
     "sellingPrice",
     "price",
@@ -16,14 +15,11 @@ CURRENCY_KEYS = (
     "costPrice",
     "basePrice",
     "fixedPrice",
-    "shippingEstimate",
     "tax",
     "discount",
     "total",
     "subtotal",
     "freight",
-    "marketingData",
-    "paymentData",
 )
 
 
@@ -162,6 +158,7 @@ class Utils:
         utm_source: Optional[str] = "weni_concierge",
         extra_product_fields: Optional[List] = None,
         remove_specifications: Optional[List[str]] = None,
+        prefer_default_seller: bool = True,
     ) -> Dict[str, Dict]:
         """
         Process raw products from the VTEX API.
@@ -178,10 +175,17 @@ class Utils:
                 Examples: ["clusterHighlights"], [("items.0.images", "images")]
             remove_specifications: List of specifications to remove from the result.
                 Examples: ["sellerId"]
+            prefer_default_seller: Prioritize the default seller over others
 
         Returns:
             Dictionary with structured products {product_name: data}
         """
+        logger.debug(
+            "Processing products: %d raw, max=%d, prefer_default_seller=%s",
+            len(raw_products),
+            max_products,
+            prefer_default_seller,
+        )
         products_structured: Dict[str, Dict] = {}
         product_count = 0
 
@@ -195,7 +199,9 @@ class Utils:
             product_name = product.get("productName", "")
 
             # Process variations (SKUs)
-            variations = self._extract_variations(product.get("items", []))
+            variations = self._extract_variations(
+                product.get("items", []), prefer_default_seller=prefer_default_seller
+            )
             if not variations:
                 continue
 
@@ -397,7 +403,8 @@ class Utils:
             # will define the field's name by the last part of the path if no alias is provided
             product_data[alias] = self._get_nested_value(product, path)
 
-    def _get_nested_value(self, data: Dict, path: str):
+    @staticmethod
+    def _get_nested_value(data: Dict, path: str):
         """
         Get a nested value from a dictionary using dot notation.
 

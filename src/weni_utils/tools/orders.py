@@ -66,7 +66,10 @@ class OrderConcierge:
         """
         store_details = self.client.get_store_details()
 
-        windows_tz = store_details.get("TimeZone") or DEFAULT_WINDOWS_TZ
+        windows_tz = DEFAULT_WINDOWS_TZ
+        if store_details:
+            windows_tz = store_details.get("TimeZone") or DEFAULT_WINDOWS_TZ
+
         iana_tz = win_tz.get(windows_tz)
         if iana_tz is None:
             iana_tz = win_tz[DEFAULT_WINDOWS_TZ]

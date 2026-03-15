@@ -214,7 +214,7 @@ class ProductConcierge(VTEXClient, StockManager):
         """
         return self.get_product_by_sku(sku_id)
 
-    def get_sku_details(self, sku_id: str) -> Dict:
+    def get_sku_info(self, sku_id: str) -> Dict:
         """
         Get details of a SKU (dimensions, weight, etc).
 
@@ -224,4 +224,4 @@ class ProductConcierge(VTEXClient, StockManager):
         Returns:
             SKU details
         """
-        return self.get_sku_details(sku_id)
+        return super().get_sku_details(sku_id)
