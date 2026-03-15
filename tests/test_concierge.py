@@ -198,6 +198,155 @@ class TestProductConciergeSearch:
 
     @patch("weni_utils.tools.client.requests.get")
     @patch("weni_utils.tools.client.requests.post")
+    def test_search_with_vtex_segment_raw_string(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        import json
+
+        segment = json.dumps({"channel": "1", "regionId": "v2.ABC"})
+        _make_concierge().search(product_name="drill", vtex_segment_raw=segment)
+
+        headers = mock_get.call_args[1].get("headers")
+        assert headers is not None
+        assert "vtex_segment=" in headers.get("Cookie", "")
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_with_weni_context_auto_extracts_segment(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        import json
+
+        from weni.context import Context
+
+        ctx = Context(
+            credentials={},
+            parameters={},
+            globals={},
+            contact={
+                "fields": {"vtex_segment": json.dumps({"channel": "2", "regionId": "v2.XYZ"})}
+            },
+            project={},
+            constants={},
+        )
+        _make_concierge().search(product_name="drill", context=ctx)
+
+        headers = mock_get.call_args[1].get("headers")
+        assert headers is not None
+        assert "vtex_segment=" in headers.get("Cookie", "")
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_context_without_segment_no_cookie(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        from weni.context import Context
+
+        ctx = Context(
+            credentials={},
+            parameters={},
+            globals={},
+            contact={"fields": {}},
+            project={},
+            constants={},
+        )
+        _make_concierge().search(product_name="drill", context=ctx)
+
+        headers = mock_get.call_args[1].get("headers")
+        assert headers is None
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_vtex_segment_raw_overrides_context(self, mock_post, mock_get):
+        raw = [self._raw_product()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {"id": "100", "availability": "available", "quantity": 5, "seller": "1"}
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        import base64
+        import json
+
+        from weni.context import Context
+
+        ctx = Context(
+            credentials={},
+            parameters={},
+            globals={},
+            contact={"fields": {"vtex_segment": json.dumps({"channel": "from-context"})}},
+            project={},
+            constants={},
+        )
+        explicit = json.dumps({"channel": "explicit-override"})
+        _make_concierge().search(product_name="drill", context=ctx, vtex_segment_raw=explicit)
+
+        cookie = mock_get.call_args[1]["headers"]["Cookie"]
+        cookie_value = cookie.split("vtex_segment=")[1]
+        decoded = json.loads(base64.b64decode(cookie_value).decode("utf-8"))
+        assert decoded["channel"] == "explicit-override"
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
     def test_search_with_postal_code_calls_region(self, mock_post, mock_get):
         region_resp = Mock(
             status_code=200,
@@ -220,6 +369,104 @@ class TestProductConciergeSearch:
         assert mock_get.call_count == 2
         region_url = mock_get.call_args_list[0][0][0]
         assert "regions" in region_url
+
+    # --- prefer_default_seller at search level ---
+
+    def _raw_product_multi_seller(self):
+        return {
+            "productName": "Multi Seller",
+            "description": "desc",
+            "brand": "Brand",
+            "link": "/multi-seller",
+            "categories": ["/Cat/"],
+            "specificationGroups": [],
+            "items": [
+                {
+                    "itemId": "200",
+                    "nameComplete": "Multi Seller - Var",
+                    "variations": [],
+                    "images": [{"imageUrl": "https://img.com/a.jpg"}],
+                    "sellers": [
+                        {
+                            "sellerId": "marketplace",
+                            "sellerDefault": False,
+                            "commertialOffer": {
+                                "Price": 90.0,
+                                "AvailableQuantity": 5,
+                                "Installments": [],
+                            },
+                        },
+                        {
+                            "sellerId": "store",
+                            "sellerDefault": True,
+                            "commertialOffer": {
+                                "Price": 100.0,
+                                "AvailableQuantity": 10,
+                                "Installments": [],
+                            },
+                        },
+                    ],
+                }
+            ],
+        }
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_default_prefers_default_seller(self, mock_post, mock_get):
+        raw = [self._raw_product_multi_seller()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {
+                            "id": "200",
+                            "availability": "available",
+                            "quantity": 5,
+                            "seller": "1",
+                        }
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        result = _make_concierge().search(product_name="drill")
+        assert result["Multi Seller"]["variations"][0]["sellerId"] == "store"
+
+    @patch("weni_utils.tools.client.requests.get")
+    @patch("weni_utils.tools.client.requests.post")
+    def test_search_prefer_default_seller_false_picks_first(self, mock_post, mock_get):
+        raw = [self._raw_product_multi_seller()]
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": raw}),
+            raise_for_status=Mock(),
+        )
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "items": [
+                        {
+                            "id": "200",
+                            "availability": "available",
+                            "quantity": 5,
+                            "seller": "1",
+                        }
+                    ]
+                }
+            ),
+            raise_for_status=Mock(),
+        )
+
+        result = _make_concierge().search(product_name="drill", prefer_default_seller=False)
+        assert result["Multi Seller"]["variations"][0]["sellerId"] == "marketplace"
 
 
 # ---------------------------------------------------------------------------

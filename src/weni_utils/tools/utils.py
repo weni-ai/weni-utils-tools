@@ -69,6 +69,43 @@ class Utils:
     """Backward-compatible namespace. Prefer create_path_order_id()."""
 
     @staticmethod
+    def encode_vtex_segment(vtex_segment_raw) -> Optional[str]:
+        """
+        Encode vtex_segment data as a base64 cookie value expected by
+        the VTEX Intelligent Search API.
+
+        Accepts either a dict or a JSON string.
+
+        Args:
+            vtex_segment_raw: Segment data as a dict or JSON string
+                (e.g. {"channel": "1", "regionId": "v2.ABC"} or its JSON equivalent)
+
+        Returns:
+            Base64-encoded cookie string, or None if input is empty/invalid.
+        """
+        import base64
+        import json
+
+        if not vtex_segment_raw:
+            return None
+
+        if isinstance(vtex_segment_raw, str):
+            try:
+                segment_data = json.loads(vtex_segment_raw)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        elif isinstance(vtex_segment_raw, dict):
+            segment_data = vtex_segment_raw
+        else:
+            return None
+
+        if not isinstance(segment_data, dict) or not segment_data:
+            return None
+
+        segment_json = json.dumps(segment_data, separators=(",", ":"))
+        return base64.b64encode(segment_json.encode("utf-8")).decode("utf-8")
+
+    @staticmethod
     def create_path_order_id(
         order_id: Optional[str] = None,
         document: Optional[str | int] = None,
@@ -186,7 +223,9 @@ class Utils:
 
         return products_structured
 
-    def _extract_variations(self, items: List[Dict]) -> List[Dict]:
+    def _extract_variations(
+        self, items: List[Dict], prefer_default_seller: bool = True
+    ) -> List[Dict]:
         """Extract and format variations from product items."""
         variations = []
 
@@ -195,7 +234,9 @@ class Utils:
             if not sku_id:
                 continue
 
-            seller_data, seller_id = self._select_best_seller(item.get("sellers", []))
+            seller_data, seller_id = self._select_best_seller(
+                item.get("sellers", []), prefer_default_seller=prefer_default_seller
+            )
             prices = self._extract_prices_from_seller(seller_data) if seller_data else {}
 
             variations.append(
@@ -418,17 +459,26 @@ class Utils:
 
         return prices
 
-    def _select_best_seller(self, sellers: List[Dict]) -> Tuple[Optional[Dict], Optional[str]]:
+    def _select_best_seller(
+        self,
+        sellers: List[Dict],
+        prefer_default_seller: bool = True,
+    ) -> Tuple[Optional[Dict], Optional[str]]:
         """
         Select the best seller for an item.
 
-        Priority:
-        1. Default seller with stock
-        2. First seller with stock
-        3. First available seller
+        When prefer_default_seller is True (default):
+            1. Default seller with stock
+            2. First seller with stock
+            3. First available seller
+
+        When prefer_default_seller is False:
+            1. First seller with stock
+            2. First available seller
 
         Args:
             sellers: List of item sellers
+            prefer_default_seller: Prioritize the default seller over others
 
         Returns:
             Tuple (seller_data, seller_id)
@@ -436,20 +486,18 @@ class Utils:
         if not sellers:
             return None, None
 
-        # Try default seller with stock
-        for seller in sellers:
-            if (
-                seller.get("sellerDefault", False)
-                and seller.get("commertialOffer", {}).get("AvailableQuantity", 0) > 0
-            ):
-                return seller, seller.get("sellerId")
+        if prefer_default_seller:
+            for seller in sellers:
+                if (
+                    seller.get("sellerDefault", False)
+                    and seller.get("commertialOffer", {}).get("AvailableQuantity", 0) > 0
+                ):
+                    return seller, seller.get("sellerId")
 
-        # Try first with stock
         for seller in sellers:
             if seller.get("commertialOffer", {}).get("AvailableQuantity", 0) > 0:
                 return seller, seller.get("sellerId")
 
-        # Fallback: first available
         return sellers[0], sellers[0].get("sellerId")
 
     def _clean_image_url(self, img_url: str) -> str:

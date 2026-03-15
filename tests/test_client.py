@@ -4,6 +4,7 @@ import pytest
 import requests
 
 from weni_utils.tools.client import VTEXClient
+from weni_utils.tools.utils import Utils
 
 VALID_BASE_URL = "https://test.vtexcommercestable.com.br"
 VALID_STORE_URL = "https://test.com.br"
@@ -124,13 +125,29 @@ class TestHelperMethods:
     def test_get_nested_value_index_out_of_range(self):
         assert VTEXClient._get_nested_value({"a": [1]}, "a.5") is None
 
-    def test_select_best_seller_default_with_stock(self, client):
+    def test_select_best_seller_default_prefers_default_seller(self, client):
         sellers = [
             {"sellerId": "2", "sellerDefault": False, "commertialOffer": {"AvailableQuantity": 5}},
             {"sellerId": "1", "sellerDefault": True, "commertialOffer": {"AvailableQuantity": 10}},
         ]
-        seller, sid = client._select_best_seller(sellers)
+        _, sid = client._select_best_seller(sellers)
         assert sid == "1"
+
+    def test_select_best_seller_no_prefer_picks_first_with_stock(self, client):
+        sellers = [
+            {"sellerId": "2", "sellerDefault": False, "commertialOffer": {"AvailableQuantity": 5}},
+            {"sellerId": "1", "sellerDefault": True, "commertialOffer": {"AvailableQuantity": 10}},
+        ]
+        _, sid = client._select_best_seller(sellers, prefer_default_seller=False)
+        assert sid == "2"
+
+    def test_select_best_seller_default_no_stock_falls_through(self, client):
+        sellers = [
+            {"sellerId": "2", "sellerDefault": False, "commertialOffer": {"AvailableQuantity": 5}},
+            {"sellerId": "1", "sellerDefault": True, "commertialOffer": {"AvailableQuantity": 0}},
+        ]
+        _, sid = client._select_best_seller(sellers)
+        assert sid == "2"
 
     def test_select_best_seller_first_with_stock(self, client):
         sellers = [
@@ -410,6 +427,124 @@ class TestProcessProducts:
         assert link == f"{VALID_STORE_URL}/product-a"
         assert "None" not in link
 
+    # --- prefer_default_seller through process_products ---
+
+    def _raw_product_multi_seller(self):
+        return {
+            "productName": "Multi Seller Product",
+            "description": "desc",
+            "brand": "Brand",
+            "link": "/multi-seller",
+            "categories": ["/Cat/"],
+            "specificationGroups": [],
+            "items": [
+                {
+                    "itemId": "200",
+                    "nameComplete": "Multi Seller Product - Var",
+                    "variations": [],
+                    "images": [{"imageUrl": "https://img.com/a.jpg"}],
+                    "sellers": [
+                        {
+                            "sellerId": "marketplace",
+                            "sellerDefault": False,
+                            "commertialOffer": {
+                                "Price": 90.0,
+                                "AvailableQuantity": 5,
+                                "Installments": [],
+                            },
+                        },
+                        {
+                            "sellerId": "store",
+                            "sellerDefault": True,
+                            "commertialOffer": {
+                                "Price": 100.0,
+                                "AvailableQuantity": 10,
+                                "Installments": [],
+                            },
+                        },
+                    ],
+                }
+            ],
+        }
+
+    def test_process_products_default_picks_default_seller(self):
+        client = _make_client()
+        result = client.process_products([self._raw_product_multi_seller()])
+        assert result["Multi Seller Product"]["variations"][0]["sellerId"] == "store"
+
+    def test_process_products_no_prefer_picks_first_seller(self):
+        client = _make_client()
+        result = client.process_products(
+            [self._raw_product_multi_seller()], prefer_default_seller=False
+        )
+        assert result["Multi Seller Product"]["variations"][0]["sellerId"] == "marketplace"
+
+
+# ---------------------------------------------------------------------------
+# encode_vtex_segment (pure logic)
+# ---------------------------------------------------------------------------
+class TestEncodeVtexSegment:
+    def test_encode_from_json_string(self):
+        import base64
+        import json
+
+        raw = json.dumps({"channel": "1", "regionId": "v2.ABC"})
+        result = Utils.encode_vtex_segment(raw)
+        decoded = json.loads(base64.b64decode(result).decode("utf-8"))
+        assert decoded["channel"] == "1"
+        assert decoded["regionId"] == "v2.ABC"
+
+    def test_encode_from_dict(self):
+        import base64
+        import json
+
+        result = Utils.encode_vtex_segment({"channel": "1", "currencyCode": "BRL"})
+        decoded = json.loads(base64.b64decode(result).decode("utf-8"))
+        assert decoded["channel"] == "1"
+        assert decoded["currencyCode"] == "BRL"
+
+    def test_encode_full_segment(self):
+        import base64
+        import json
+
+        segment = {
+            "channel": "1",
+            "priceTables": "tier1,quantumgroup",
+            "regionId": "v2.9EA3321CDCAC1005A9491FFB8A3EF714",
+            "currencyCode": "USD",
+            "countryCode": "USA",
+            "cultureInfo": "en-US",
+        }
+        result = Utils.encode_vtex_segment(segment)
+        assert result is not None
+        decoded = json.loads(base64.b64decode(result).decode("utf-8"))
+        assert decoded["regionId"] == "v2.9EA3321CDCAC1005A9491FFB8A3EF714"
+        assert decoded["currencyCode"] == "USD"
+
+    def test_encode_none_returns_none(self):
+        assert Utils.encode_vtex_segment(None) is None
+
+    def test_encode_empty_string_returns_none(self):
+        assert Utils.encode_vtex_segment("") is None
+
+    def test_encode_empty_dict_returns_none(self):
+        assert Utils.encode_vtex_segment({}) is None
+
+    def test_encode_invalid_json_returns_none(self):
+        assert Utils.encode_vtex_segment("not-json{{{") is None
+
+    def test_encode_non_dict_json_returns_none(self):
+        assert Utils.encode_vtex_segment("[1, 2, 3]") is None
+
+    def test_encode_integer_returns_none(self):
+        assert Utils.encode_vtex_segment(42) is None
+
+    def test_encode_produces_valid_base64(self):
+        import base64
+
+        result = Utils.encode_vtex_segment({"channel": "1"})
+        base64.b64decode(result)
+
 
 # ---------------------------------------------------------------------------
 # intelligent_search (mocked HTTP)
@@ -462,6 +597,48 @@ class TestIntelligentSearch:
         url = mock_get.call_args[0][0]
         assert "trade-policy/2" in url
         assert "productClusterIds/99" in url
+
+    @patch("weni_utils.tools.client.requests.get")
+    def test_vtex_segment_sends_cookie_header(self, mock_get):
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": []}),
+            raise_for_status=Mock(),
+        )
+        _make_client().intelligent_search("drill", vtex_segment="abc123encoded")
+        headers = mock_get.call_args[1].get("headers")
+        assert headers is not None
+        assert headers["Cookie"] == "vtex_segment=abc123encoded"
+
+    @patch("weni_utils.tools.client.requests.get")
+    def test_vtex_segment_skips_path_segments(self, mock_get):
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": []}),
+            raise_for_status=Mock(),
+        )
+        _make_client().intelligent_search(
+            "drill",
+            vtex_segment="abc123",
+            trade_policy_id=2,
+            region_id="v123",
+            cluster_id=99,
+        )
+        url = mock_get.call_args[0][0]
+        assert "trade-policy" not in url
+        assert "region-id" not in url
+        assert "productClusterIds" not in url
+
+    @patch("weni_utils.tools.client.requests.get")
+    def test_no_vtex_segment_no_cookie_header(self, mock_get):
+        mock_get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value={"products": []}),
+            raise_for_status=Mock(),
+        )
+        _make_client().intelligent_search("drill")
+        headers = mock_get.call_args[1].get("headers")
+        assert headers is None
 
 
 # ---------------------------------------------------------------------------

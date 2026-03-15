@@ -132,6 +132,7 @@ class VTEXClient(ProxyRequest, Utils):
         trade_policy_id: Optional[int] = None,
         cluster_id: Optional[int] = None,
         allow_redirect: bool = False,
+        vtex_segment: Optional[str] = None,
     ) -> List[Dict]:
         """
         Search products using VTEX Intelligent Search API.
@@ -154,7 +155,7 @@ class VTEXClient(ProxyRequest, Utils):
         # Build URL with or without regionalization
         query = f"{product_name} {brand_name}".strip()
 
-        # Build path segments
+        # Build path segments (skip when vtex_segment handles regionalization)
         path_segments = []
         if trade_policy_id:
             path_segments.append(f"trade-policy/{trade_policy_id}")
@@ -174,8 +175,12 @@ class VTEXClient(ProxyRequest, Utils):
             f"&allowRedirect={str(allow_redirect).lower()}"
         )
 
+        headers = {}
+        if vtex_segment:
+            headers["Cookie"] = f"vtex_segment={vtex_segment}"
+
         try:
-            response = requests.get(search_url, timeout=self.timeout)
+            response = requests.get(search_url, timeout=self.timeout, headers=headers or None)
             response.raise_for_status()
             data = response.json()
             return data.get("products", [])
@@ -536,6 +541,7 @@ class VTEXClient(ProxyRequest, Utils):
         max_variations: int = 5,
         utm_source: Optional[str] = "weni_concierge",
         extra_product_fields: Optional[List] = None,
+        prefer_default_seller: bool = True,
     ) -> Dict[str, Dict]:
         """
         Process raw products from the VTEX API.
@@ -550,6 +556,7 @@ class VTEXClient(ProxyRequest, Utils):
             extra_product_fields: Extra fields to include in the result.
                 Can be a string or tuple (path, alias).
                 Examples: ["clusterHighlights"], [("items.0.images", "images")]
+            prefer_default_seller: Prioritize the default seller over others
 
         Returns:
             Dictionary with structured products {product_name: data}
@@ -567,7 +574,9 @@ class VTEXClient(ProxyRequest, Utils):
             product_name = product.get("productName", "")
 
             # Process variations (SKUs)
-            variations = self._extract_variations(product.get("items", []))
+            variations = self._extract_variations(
+                product.get("items", []), prefer_default_seller=prefer_default_seller
+            )
             if not variations:
                 continue
 
@@ -601,7 +610,9 @@ class VTEXClient(ProxyRequest, Utils):
 
         return products_structured
 
-    def _extract_variations(self, items: List[Dict]) -> List[Dict]:
+    def _extract_variations(
+        self, items: List[Dict], prefer_default_seller: bool = True
+    ) -> List[Dict]:
         """Extract and format variations from product items."""
         variations = []
 
@@ -610,7 +621,9 @@ class VTEXClient(ProxyRequest, Utils):
             if not sku_id:
                 continue
 
-            seller_data, seller_id = self._select_best_seller(item.get("sellers", []))
+            seller_data, seller_id = self._select_best_seller(
+                item.get("sellers", []), prefer_default_seller=prefer_default_seller
+            )
             prices = self._extract_prices_from_seller(seller_data) if seller_data else {}
 
             variations.append(

@@ -7,6 +7,8 @@ integrating the VTEX client, stock manager, and plugins.
 
 from typing import Any, Dict, List, Optional
 
+from weni.context import Context
+
 from .client import VTEXClient
 from .context import SearchContext
 from .stock import StockManager
@@ -90,6 +92,9 @@ class ProductConcierge(VTEXClient, StockManager):
         delivery_type: Optional[str] = None,
         credentials: Optional[Dict[str, Any]] = None,
         contact_info: Optional[Dict[str, Any]] = None,
+        context: Optional[Context] = None,
+        vtex_segment_raw: Optional[str] = None,
+        prefer_default_seller: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -103,13 +108,19 @@ class ProductConcierge(VTEXClient, StockManager):
             delivery_type: Delivery type (optional)
             credentials: Extra credentials for plugins
             contact_info: Contact info for plugins
+            context: Weni Context object. When provided, vtex_segment is
+                automatically extracted from context.contact fields.
+            vtex_segment_raw: Raw JSON string with segment data. Overrides
+                the value from context if both are provided.
+            prefer_default_seller: Prioritize the default seller over
+                the first seller with stock
             **kwargs: Extra parameters for plugins
 
         Returns:
             Dictionary with found products and extra information
         """
         # 1. Create search context
-        context = SearchContext(
+        search_ctx = SearchContext(
             product_name=product_name,
             brand_name=brand_name,
             postal_code=postal_code,
@@ -121,33 +132,42 @@ class ProductConcierge(VTEXClient, StockManager):
 
         # Add extra kwargs to context
         for key, value in kwargs.items():
-            if hasattr(context, key):
-                setattr(context, key, value)
+            if hasattr(search_ctx, key):
+                setattr(search_ctx, key, value)
 
         # 2. Get region
-        if context.postal_code:
-            context.region_id, context.region_error, context.sellers = self.get_region(
-                postal_code=context.postal_code,
-                trade_policy=context.trade_policy,
-                country_code=context.country_code,
+        if search_ctx.postal_code:
+            search_ctx.region_id, search_ctx.region_error, search_ctx.sellers = self.get_region(
+                postal_code=search_ctx.postal_code,
+                trade_policy=search_ctx.trade_policy,
+                country_code=search_ctx.country_code,
             )
 
-        # 2. Perform intelligent search (returns raw data)
+        # 3. Resolve vtex_segment: explicit param > auto-extract from Weni Context
+        if not vtex_segment_raw and context is not None:
+            fields = context.contact.get("fields", {}) or {}
+            vtex_segment_raw = fields.get("vtex_segment")
+
+        vtex_segment_cookie = self.encode_vtex_segment(vtex_segment_raw)
+
+        # 4. Perform intelligent search (returns raw data)
         raw_products = self.intelligent_search(
-            product_name=context.product_name,
-            brand_name=context.brand_name,
-            region_id=context.region_id,
+            product_name=search_ctx.product_name,
+            brand_name=search_ctx.brand_name,
+            region_id=search_ctx.region_id,
+            vtex_segment=vtex_segment_cookie,
         )
 
-        # 3. Process raw products (format, filter, limit)
+        # 5. Process raw products (format, filter, limit)
         products = self.process_products(
             raw_products=raw_products,
             max_products=self.max_products,
             max_variations=self.max_variations,
             utm_source=self.utm_source,
+            prefer_default_seller=prefer_default_seller,
         )
 
-        # 4. Limit payload size
+        # 6. Limit payload size
         filtered_products = self.limit_payload_size(products, self.max_payload_kb)
 
         return filtered_products
