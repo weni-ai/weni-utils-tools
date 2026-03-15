@@ -201,7 +201,9 @@ class Utils:
 
             # Process variations (SKUs)
             variations = self._extract_variations(
-                product.get("items", []), prefer_default_seller=prefer_default_seller
+                product.get("items", []),
+                prefer_default_seller=prefer_default_seller,
+                remove_specifications=remove_specifications,
             )
             if not variations:
                 continue
@@ -238,7 +240,10 @@ class Utils:
         return products_structured
 
     def _extract_variations(
-        self, items: List[Dict], prefer_default_seller: bool = True
+        self,
+        items: List[Dict],
+        prefer_default_seller: bool = True,
+        remove_specifications: Optional[List[str]] = None,
     ) -> List[Dict]:
         """Extract and format variations from product items."""
         variations = []
@@ -257,7 +262,10 @@ class Utils:
                 {
                     "sku_id": sku_id,
                     "sku_name": item.get("nameComplete"),
-                    "variations": self._format_variations(item.get("variations", [])),
+                    "variations": self._format_variations(
+                        item.get("variations", []),
+                        remove_specifications=remove_specifications,
+                    ),
                     "price": prices.get("price"),
                     "spotPrice": prices.get("spot_price"),
                     "listPrice": prices.get("list_price"),
@@ -547,16 +555,24 @@ class Utils:
         ]
         return f"{{{', '.join(compact)}}}" if compact else "{{}}"
 
-    def _format_variations(self, variation_items: List[Dict]) -> str:
+    def _format_variations(
+        self,
+        variation_items: List[Dict],
+        remove_specifications: Optional[List[str]] = None,
+    ) -> str:
         """
         Convert variations to compact format.
 
         Args:
             variation_items: List of item variations
+            remove_specifications: List of variation names to exclude
 
         Returns:
             String in format "{Color: White, Size: M}"
         """
+        if remove_specifications:
+            remove_set = set(remove_specifications)
+            variation_items = [v for v in variation_items if v.get("name") not in remove_set]
         return self._format_name_value_pairs(variation_items)
 
     def _format_specifications(

@@ -323,6 +323,24 @@ class TestProcessProducts:
         assert "sellerId" not in specs_str
         assert "color" in specs_str
 
+    def test_remove_specifications_also_filters_variations(self):
+        raw = self._raw_product()
+        raw["items"][0]["variations"] = [
+            {"name": "Color", "values": ["Blue"]},
+            {"name": "VALOR_HEX_ORIGINAL", "values": ["#30B349"]},
+            {"name": "ID_COR_ORIGINAL", "values": ["049"]},
+        ]
+        utils = Utils()
+        result = utils.process_products(
+            [raw],
+            store_url_vtex=self.STORE_URL,
+            remove_specifications=["VALOR_HEX_ORIGINAL", "ID_COR_ORIGINAL"],
+        )
+        variations_str = result["Product A"]["variations"][0]["variations"]
+        assert "Color" in variations_str
+        assert "VALOR_HEX_ORIGINAL" not in variations_str
+        assert "ID_COR_ORIGINAL" not in variations_str
+
 
 # ---------------------------------------------------------------------------
 # _select_best_seller
@@ -673,6 +691,19 @@ class TestFormatHelpers:
         items = [{"name": "Color", "values": ["Blue"]}]
         result = self._utils()._format_variations(items)
         assert result == "{Color: Blue}"
+
+    def test_format_variations_with_remove_specifications(self):
+        items = [
+            {"name": "Color", "values": ["Blue"]},
+            {"name": "VALOR_HEX_ORIGINAL", "values": ["#30B349"]},
+            {"name": "Size", "values": ["M"]},
+        ]
+        result = self._utils()._format_variations(
+            items, remove_specifications=["VALOR_HEX_ORIGINAL"]
+        )
+        assert "Color" in result
+        assert "Size" in result
+        assert "VALOR_HEX_ORIGINAL" not in result
 
 
 # ---------------------------------------------------------------------------
